@@ -1,5 +1,5 @@
 [main]
-format = "dense" # sparse, dense
+sparse = false
 
 [colors]
 default = "red"

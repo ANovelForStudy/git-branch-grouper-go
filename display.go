@@ -37,12 +37,12 @@ func printResultsWithConfig(data BranchData, cfg Config) {
 			printNode(rootNode.Children[subKey], 1, groupColorStr, starColorStr, cfg)
 		}
 
-		if cfg.Main["format"] == "sparse" {
+		if cfg.Main["sparse"] {
 			fmt.Println()
 		}
 	}
 
-	printSimpleGroup("[other]", data.OtherBranches, otherColorStr, starColorStr, cfg.Main["format"])
+	printSimpleGroup("[other]", data.OtherBranches, otherColorStr, starColorStr, cfg.Main["sparse"])
 }
 
 func printNode(node *Node, level int, parentColorStr string, starColorStr string, cfg Config) {
@@ -80,7 +80,7 @@ func printNode(node *Node, level int, parentColorStr string, starColorStr string
 	}
 }
 
-func printSimpleGroup(title string, branches []string, titleColorStr string, starColorStr string, format string) {
+func printSimpleGroup(title string, branches []string, titleColorStr string, starColorStr string, sparse bool) {
 	titleColor := getColorPrinter(titleColorStr)
 	titleColor.Println(title)
 
@@ -98,7 +98,7 @@ func printSimpleGroup(title string, branches []string, titleColorStr string, sta
 		}
 	}
 
-	if format == "sparse" {
+	if sparse {
 		fmt.Println()
 	}
 }

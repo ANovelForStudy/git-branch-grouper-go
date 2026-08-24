@@ -11,7 +11,7 @@ const repoPath = `G:\05-Projects\01-Programming\01-Pet-Projects\06-Git-branch-gr
 var defaultBranchNames = []string{"develop", "main", "master"}
 
 type Config struct {
-	Main   map[string]string `toml:"main"`
+	Main   map[string]bool   `toml:"main"`
 	Colors map[string]string `toml:"colors"`
 	Groups map[string]string `toml:"groups"`
 }
