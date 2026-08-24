@@ -13,7 +13,7 @@ func printResultsWithConfig(data BranchData, cfg Config) {
 	otherColorStr := cfg.Colors["other"]
 	starColorStr := cfg.Colors["active_star"]
 
-	printGroup("[default]", data.DefaultBranches, defaultColorStr, starColorStr)
+	printGroup("[default]", data.DefaultBranches, defaultColorStr, starColorStr, cfg.Main["format"])
 
 	groupNames := make([]string, 0, len(data.MainGroups))
 	for name := range data.MainGroups {
@@ -28,13 +28,13 @@ func printResultsWithConfig(data BranchData, cfg Config) {
 		}
 
 		title := fmt.Sprintf("%s/", groupName)
-		printGroup(title, data.MainGroups[groupName], groupColorStr, starColorStr)
+		printGroup(title, data.MainGroups[groupName], groupColorStr, starColorStr, cfg.Main["format"])
 	}
 
-	printGroup("[other]", data.OtherBranches, otherColorStr, starColorStr)
+	printGroup("[other]", data.OtherBranches, otherColorStr, starColorStr, cfg.Main["format"])
 }
 
-func printGroup(title string, branches []string, titleColorStr string, starColorStr string) {
+func printGroup(title string, branches []string, titleColorStr string, starColorStr string, format string) {
 	titleColor := getColorPrinter(titleColorStr)
 	titleColor.Println(title)
 
@@ -50,6 +50,10 @@ func printGroup(title string, branches []string, titleColorStr string, starColor
 		} else {
 			fmt.Println(tabulation, branch)
 		}
+	}
+
+	if format == "sparse" {
+		fmt.Println()
 	}
 }
 

@@ -1,3 +1,6 @@
+[main]
+format = "sparse" # sparse, dense
+
 [colors]
 default = "red"
 other = "yellow"
