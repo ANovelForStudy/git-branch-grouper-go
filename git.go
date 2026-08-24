@@ -42,7 +42,7 @@ func collectBranches(repo *git.Repository) BranchData {
 	activeBranchName := activeBranch.Name().Short()
 
 	data := BranchData{
-		MainGroups:      make(map[string][]string),
+		MainGroups:      make(map[string]*Node),
 		DefaultBranches: []string{},
 		OtherBranches:   []string{},
 	}
@@ -55,11 +55,36 @@ func collectBranches(repo *git.Repository) BranchData {
 		prefix := splitted[0]
 
 		if len(splitted) > 1 {
-			postfix := strings.Join(splitted[1:], "/")
-			if isActive {
-				postfix = "* " + postfix
+			rootNode, exists := data.MainGroups[prefix]
+			if !exists {
+				rootNode = &Node{
+					Name:     prefix,
+					Children: make(map[string]*Node),
+					SubKeys:  []string{},
+				}
+				data.MainGroups[prefix] = rootNode
 			}
-			data.MainGroups[prefix] = append(data.MainGroups[prefix], postfix)
+
+			curr := rootNode
+			for i := 1; i < len(splitted); i++ {
+				part := splitted[i]
+				isLast := i == len(splitted)-1
+
+				child, childExists := curr.Children[part]
+				if !childExists {
+					child = &Node{
+						Name:     part,
+						IsActive: isLast && isActive,
+						Children: make(map[string]*Node),
+						SubKeys:  []string{},
+					}
+					curr.Children[part] = child
+					curr.SubKeys = append(curr.SubKeys, part)
+				} else if isLast && isActive {
+					child.IsActive = true
+				}
+				curr = child
+			}
 		} else {
 			targetList := &data.OtherBranches
 			cleanPrefix := strings.TrimPrefix(prefix, "* ")

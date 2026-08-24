@@ -13,7 +13,7 @@ func printResultsWithConfig(data BranchData, cfg Config) {
 	otherColorStr := cfg.Colors["other"]
 	starColorStr := cfg.Colors["active_star"]
 
-	printGroup("[default]", data.DefaultBranches, defaultColorStr, starColorStr, cfg.Main["format"])
+	printSimpleGroup("[default]", data.DefaultBranches, defaultColorStr, starColorStr, cfg.Main["format"])
 
 	groupNames := make([]string, 0, len(data.MainGroups))
 	for name := range data.MainGroups {
@@ -28,13 +28,59 @@ func printResultsWithConfig(data BranchData, cfg Config) {
 		}
 
 		title := fmt.Sprintf("%s/", groupName)
-		printGroup(title, data.MainGroups[groupName], groupColorStr, starColorStr, cfg.Main["format"])
+		titleColor := getColorPrinter(groupColorStr)
+		titleColor.Println(title)
+
+		rootNode := data.MainGroups[groupName]
+		sort.Strings(rootNode.SubKeys)
+		for _, subKey := range rootNode.SubKeys {
+			printNode(rootNode.Children[subKey], 1, groupColorStr, starColorStr, cfg)
+		}
+
+		if cfg.Main["format"] == "sparse" {
+			fmt.Println()
+		}
 	}
 
-	printGroup("[other]", data.OtherBranches, otherColorStr, starColorStr, cfg.Main["format"])
+	printSimpleGroup("[other]", data.OtherBranches, otherColorStr, starColorStr, cfg.Main["format"])
 }
 
-func printGroup(title string, branches []string, titleColorStr string, starColorStr string, format string) {
+func printNode(node *Node, level int, parentColorStr string, starColorStr string, cfg Config) {
+	tabulation := strings.Repeat("    ", level)
+	starColor := getColorPrinter(starColorStr)
+
+	nodeColorStr := cfg.Groups[node.Name]
+	if nodeColorStr == "" {
+		nodeColorStr = parentColorStr
+	}
+	nodeColor := getColorPrinter(nodeColorStr)
+
+	if len(node.Children) == 0 {
+		if node.IsActive {
+			fmt.Print(tabulation)
+			starColor.Print("* ")
+			nodeColor.Println(node.Name)
+		} else {
+			nodeColor.Println(tabulation + node.Name)
+		}
+		return
+	}
+
+	if node.IsActive {
+		fmt.Print(tabulation)
+		starColor.Print("* ")
+		nodeColor.Println(node.Name + "/")
+	} else {
+		nodeColor.Println(tabulation + node.Name + "/")
+	}
+
+	sort.Strings(node.SubKeys)
+	for _, subKey := range node.SubKeys {
+		printNode(node.Children[subKey], level+1, nodeColorStr, starColorStr, cfg)
+	}
+}
+
+func printSimpleGroup(title string, branches []string, titleColorStr string, starColorStr string, format string) {
 	titleColor := getColorPrinter(titleColorStr)
 	titleColor.Println(title)
 

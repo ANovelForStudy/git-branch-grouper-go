@@ -16,8 +16,15 @@ type Config struct {
 	Groups map[string]string `toml:"groups"`
 }
 
+type Node struct {
+	Name     string
+	IsActive bool
+	Children map[string]*Node
+	SubKeys  []string
+}
+
 type BranchData struct {
-	MainGroups      map[string][]string
+	MainGroups      map[string]*Node
 	DefaultBranches []string
 	OtherBranches   []string
 }
