@@ -1,0 +1,19 @@
+[colors]
+default = "red"
+other = "yellow"
+active_star = "green"
+
+[groups]
+backup   = "blue"
+build    = "magenta"
+chore    = "white"
+ci       = "cyan"
+docs     = "blue"
+exp      = "magenta"
+feat     = "green"
+fix      = "red"
+hotfix   = "red"
+old      = "yellow"
+refactor = "cyan"
+release  = "green"
+test     = "blue"

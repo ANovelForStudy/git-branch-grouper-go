@@ -12,12 +12,6 @@ import (
 	"github.com/go-git/go-git/v6/plumbing"
 )
 
-type BranchData struct {
-	MainGroups      map[string][]string
-	DefaultBranches []string
-	OtherBranches   []string
-}
-
 func validateRepoPath(path string) {
 	if _, err := os.Stat(path); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -67,17 +61,16 @@ func collectBranches(repo *git.Repository) BranchData {
 			}
 			data.MainGroups[prefix] = append(data.MainGroups[prefix], postfix)
 		} else {
-			if slices.Contains(defaultBranchNames, prefix) {
-				if isActive {
-					prefix = "* " + prefix
-				}
-				data.DefaultBranches = append(data.DefaultBranches, prefix)
-			} else {
-				if isActive {
-					prefix = "* " + prefix
-				}
-				data.OtherBranches = append(data.OtherBranches, prefix)
+			targetList := &data.OtherBranches
+			cleanPrefix := strings.TrimPrefix(prefix, "* ")
+			if slices.Contains(defaultBranchNames, cleanPrefix) {
+				targetList = &data.DefaultBranches
 			}
+
+			if isActive {
+				prefix = "* " + prefix
+			}
+			*targetList = append(*targetList, prefix)
 		}
 
 		return nil
