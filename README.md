@@ -4,7 +4,7 @@ A fast, colorized CLI tool that displays git branches grouped by prefix with hie
 
 ### Core Principles
 
-* **Native Git Access**: Powered by `go-git` — no external `git` binary required. Works anywhere Go compiles.
+* **Native Git Access**: Powered by `go-git` - no external `git` binary required. Works anywhere Go compiles.
 * **Hierarchical Branch View**: Branches like `feat/auth/login` render as a navigable tree, not a flat list.
 * **Powerful Filtering**: Include or exclude branches at any depth with slash-separated paths (`backup/v2/refactor`).
 * **Color-Coded Output**: Every group gets its own color. Customize everything through `config.toml`.
@@ -24,12 +24,40 @@ A fast, colorized CLI tool that displays git branches grouped by prefix with hie
 | **Default Branch Detection** | `main`, `master`, `develop` are automatically categorized |
 
 
-### Quick Start
+### Download
+
+Pre-built binaries are available for **Windows**, **Linux**, and **macOS** on the [Releases](https://github.com/ANovelForStudy/GitBranchGrouper/releases) page.
+
+| Platform | Architecture | Archive |
+|---|---|---|
+| Windows | x64 | `.zip` |
+| Windows | ARM64 | `.zip` |
+| Linux | x64 | `.tar.gz` |
+| Linux | ARM64 | `.tar.gz` |
+| macOS | Intel | `.tar.gz` |
+| macOS | Apple Silicon | `.tar.gz` |
+
+Download the archive for your system, extract the binary, and place it in your `PATH`:
+
+```bash
+# Linux / macOS
+tar -xzf git-branch-grouper_1.0.0_linux_amd64.tar.gz
+sudo mv git-branch-grouper /usr/local/bin/
+
+# Windows (PowerShell)
+Expand-Archive git-branch-grouper_1.0.0_windows_amd64.zip -DestinationPath .
+Move-Item git-branch-grouper.exe C:\Windows\System32\
+```
+
+
+### Build from Source
+
+Requires [Go 1.22+](https://go.dev/dl/) installed.
 
 ```bash
 git clone https://github.com/ANovelForStudy/GitBranchGrouper.git
 cd GitBranchGrouper
-go build -o git-branch-grouper .
+go build -o git-branch-grouper ./cmd/git-branch-grouper
 ./git-branch-grouper
 ```
 
@@ -122,15 +150,24 @@ test     = "blue"
 
 ```
 .
-├── main.go           # Entry point, CLI flag parsing, config loading
-├── model.go          # Domain types: Config, Node, BranchData
-├── git.go            # Git repository operations and branch collection
-├── filter.go         # Branch filtering and tree manipulation logic
-├── display.go        # Terminal output and color rendering
-├── main_test.go      # Unit tests for filter and utility functions
-├── config.toml       # Default color and group configuration
-├── go.mod            # Go module definition
-└── go.sum            # Dependency checksums
+├── cmd/
+│   └── git-branch-grouper/
+│       └── main.go              # Entry point, CLI flags, usage text
+├── internal/
+│   ├── config/
+│   │   └── config.go            # Config loading and TOML parsing
+│   ├── model/
+│   │   └── model.go             # Domain types: Node, BranchData
+│   ├── git/
+│   │   └── git.go               # Repository operations, branch collection
+│   ├── filter/
+│   │   ├── filter.go            # Branch filtering and tree manipulation
+│   │   └── filter_test.go       # Unit tests
+│   └── display/
+│       └── display.go           # Terminal output and color rendering
+├── config.toml                  # Default color and group configuration
+├── go.mod
+└── go.sum
 ```
 
 
@@ -145,7 +182,7 @@ test     = "blue"
 ### Running Tests
 
 ```bash
-go test -v .
+go test ./...
 ```
 
 
