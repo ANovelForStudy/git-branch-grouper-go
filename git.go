@@ -12,6 +12,8 @@ import (
 	"github.com/go-git/go-git/v6/plumbing"
 )
 
+var defaultBranchNames = []string{"develop", "main", "master"}
+
 func validateRepoPath(path string) {
 	if _, err := os.Stat(path); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -57,11 +59,7 @@ func collectBranches(repo *git.Repository) BranchData {
 		if len(splitted) > 1 {
 			rootNode, exists := data.MainGroups[prefix]
 			if !exists {
-				rootNode = &Node{
-					Name:     prefix,
-					Children: make(map[string]*Node),
-					SubKeys:  []string{},
-				}
+				rootNode = newNode(prefix)
 				data.MainGroups[prefix] = rootNode
 			}
 
@@ -72,12 +70,8 @@ func collectBranches(repo *git.Repository) BranchData {
 
 				child, childExists := curr.Children[part]
 				if !childExists {
-					child = &Node{
-						Name:     part,
-						IsActive: isLast && isActive,
-						Children: make(map[string]*Node),
-						SubKeys:  []string{},
-					}
+					child = newNode(part)
+					child.IsActive = isLast && isActive
 					curr.Children[part] = child
 					curr.SubKeys = append(curr.SubKeys, part)
 				} else if isLast && isActive {

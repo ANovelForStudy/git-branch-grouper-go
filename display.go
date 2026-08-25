@@ -8,12 +8,13 @@ import (
 	"github.com/fatih/color"
 )
 
-func printResultsWithConfig(data BranchData, cfg Config) {
-	defaultColorStr := cfg.Colors["default"]
-	otherColorStr := cfg.Colors["other"]
+func printResultsWithConfig(data BranchData, cfg Config, hasFilter bool) {
 	starColorStr := cfg.Colors["active_star"]
 
-	printSimpleGroup("[default]", data.DefaultBranches, defaultColorStr, starColorStr, cfg.Main["format"])
+	if !hasFilter {
+		defaultColorStr := cfg.Colors["default"]
+		printSimpleGroup("[default]", data.DefaultBranches, defaultColorStr, starColorStr, cfg.Main.Sparse)
+	}
 
 	groupNames := make([]string, 0, len(data.MainGroups))
 	for name := range data.MainGroups {
@@ -37,12 +38,15 @@ func printResultsWithConfig(data BranchData, cfg Config) {
 			printNode(rootNode.Children[subKey], 1, groupColorStr, starColorStr, cfg)
 		}
 
-		if cfg.Main["sparse"] {
+		if cfg.Main.Sparse {
 			fmt.Println()
 		}
 	}
 
-	printSimpleGroup("[other]", data.OtherBranches, otherColorStr, starColorStr, cfg.Main["sparse"])
+	if !hasFilter {
+		otherColorStr := cfg.Colors["other"]
+		printSimpleGroup("[other]", data.OtherBranches, otherColorStr, starColorStr, cfg.Main.Sparse)
+	}
 }
 
 func printNode(node *Node, level int, parentColorStr string, starColorStr string, cfg Config) {
@@ -119,7 +123,6 @@ func getColorPrinter(colorName string) *color.Color {
 		return color.New(color.FgCyan)
 	case "white":
 		return color.New(color.FgWhite)
-
 	case "hi-red":
 		return color.New(color.FgHiRed)
 	case "hi-green":
@@ -134,7 +137,6 @@ func getColorPrinter(colorName string) *color.Color {
 		return color.New(color.FgHiCyan)
 	case "hi-white":
 		return color.New(color.FgHiWhite)
-
 	default:
 		return color.New(color.FgWhite)
 	}
