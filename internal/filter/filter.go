@@ -1,8 +1,12 @@
-package main
+package filter
 
-import "strings"
+import (
+	"strings"
 
-func parsePrefixList(raw string) []string {
+	"git-branch-grouper-plugin/internal/model"
+)
+
+func ParsePrefixList(raw string) []string {
 	if raw == "" {
 		return nil
 	}
@@ -17,7 +21,7 @@ func parsePrefixList(raw string) []string {
 	return result
 }
 
-func filterBranchData(data BranchData, includeList, excludeList []string) BranchData {
+func Apply(data model.BranchData, includeList, excludeList []string) model.BranchData {
 	if len(includeList) == 0 && len(excludeList) == 0 {
 		return data
 	}
@@ -25,8 +29,8 @@ func filterBranchData(data BranchData, includeList, excludeList []string) Branch
 	includeTree := buildFilterTree(includeList)
 	excludeTree := buildFilterTree(excludeList)
 
-	filtered := BranchData{
-		MainGroups: make(map[string]*Node),
+	filtered := model.BranchData{
+		MainGroups: make(map[string]*model.Node),
 	}
 
 	for groupName, srcNode := range data.MainGroups {
@@ -45,7 +49,7 @@ func filterBranchData(data BranchData, includeList, excludeList []string) Branch
 		hasSubExclude := excludeTree[groupName] != nil && len(excludeTree[groupName]) > 0
 
 		if hasSubInclude {
-			result := newNode(srcNode.Name)
+			result := model.NewNode(srcNode.Name)
 			for _, subFilter := range includeTree[groupName] {
 				addIncludedPath(result, srcNode, subFilter)
 			}
@@ -58,7 +62,7 @@ func filterBranchData(data BranchData, includeList, excludeList []string) Branch
 				filtered.MainGroups[groupName] = result
 			}
 		} else {
-			result := newNode(srcNode.Name)
+			result := model.NewNode(srcNode.Name)
 			result.IsActive = srcNode.IsActive
 			copySubtree(result, srcNode)
 			filtered.MainGroups[groupName] = result
@@ -70,8 +74,8 @@ func filterBranchData(data BranchData, includeList, excludeList []string) Branch
 
 func buildFilterTree(filterList []string) map[string][]string {
 	tree := make(map[string][]string)
-	for _, filter := range filterList {
-		parts := strings.SplitN(filter, "/", 2)
+	for _, f := range filterList {
+		parts := strings.SplitN(f, "/", 2)
 		groupName := parts[0]
 		if len(parts) > 1 {
 			tree[groupName] = append(tree[groupName], parts[1])
@@ -82,7 +86,7 @@ func buildFilterTree(filterList []string) map[string][]string {
 	return tree
 }
 
-func addIncludedPath(dst *Node, src *Node, path string) {
+func addIncludedPath(dst *model.Node, src *model.Node, path string) {
 	parts := strings.SplitN(path, "/", 2)
 	key := parts[0]
 
@@ -98,7 +102,7 @@ func addIncludedPath(dst *Node, src *Node, path string) {
 		return
 	}
 
-	newChild := newNode(child.Name)
+	newChild := model.NewNode(child.Name)
 	newChild.IsActive = child.IsActive
 	if len(parts) > 1 {
 		addIncludedPath(newChild, child, parts[1])
@@ -109,13 +113,13 @@ func addIncludedPath(dst *Node, src *Node, path string) {
 	dst.SubKeys = append(dst.SubKeys, key)
 }
 
-func copySubtree(dst *Node, src *Node) {
+func copySubtree(dst *model.Node, src *model.Node) {
 	for _, subKey := range src.SubKeys {
 		if _, exists := dst.Children[subKey]; exists {
 			continue
 		}
 		srcChild := src.Children[subKey]
-		dstChild := newNode(srcChild.Name)
+		dstChild := model.NewNode(srcChild.Name)
 		dstChild.IsActive = srcChild.IsActive
 		dst.Children[subKey] = dstChild
 		dst.SubKeys = append(dst.SubKeys, subKey)
@@ -123,8 +127,8 @@ func copySubtree(dst *Node, src *Node) {
 	}
 }
 
-func copyFilteredSubtree(src *Node, excludePaths []string) *Node {
-	result := newNode(src.Name)
+func copyFilteredSubtree(src *model.Node, excludePaths []string) *model.Node {
+	result := model.NewNode(src.Name)
 
 	for _, subKey := range src.SubKeys {
 		child := src.Children[subKey]
@@ -145,7 +149,7 @@ func copyFilteredSubtree(src *Node, excludePaths []string) *Node {
 			continue
 		}
 		if _, exists := result.Children[subKey]; !exists {
-			newChild := newNode(child.Name)
+			newChild := model.NewNode(child.Name)
 			newChild.IsActive = child.IsActive
 			copySubtree(newChild, child)
 			result.Children[subKey] = newChild
@@ -156,7 +160,7 @@ func copyFilteredSubtree(src *Node, excludePaths []string) *Node {
 	return result
 }
 
-func findMatchingChild(node *Node, subPath string) *Node {
+func FindMatchingChild(node *model.Node, subPath string) *model.Node {
 	parts := strings.Split(subPath, "/")
 	curr := node
 	for _, part := range parts {

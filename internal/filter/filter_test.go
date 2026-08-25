@@ -1,12 +1,14 @@
-package main
+package filter
 
 import (
 	"sort"
 	"testing"
+
+	"git-branch-grouper-plugin/internal/model"
 )
 
-func testNode(name string, children ...*Node) *Node {
-	n := newNode(name)
+func testNode(name string, children ...*model.Node) *model.Node {
+	n := model.NewNode(name)
 	for _, c := range children {
 		n.Children[c.Name] = c
 		n.SubKeys = append(n.SubKeys, c.Name)
@@ -15,13 +17,13 @@ func testNode(name string, children ...*Node) *Node {
 	return n
 }
 
-func leaf(name string) *Node {
+func leaf(name string) *model.Node {
 	return testNode(name)
 }
 
-func branchData(groups ...*Node) BranchData {
-	data := BranchData{
-		MainGroups:      make(map[string]*Node),
+func branchData(groups ...*model.Node) model.BranchData {
+	data := model.BranchData{
+		MainGroups:      make(map[string]*model.Node),
 		DefaultBranches: []string{},
 		OtherBranches:   []string{},
 	}
@@ -31,7 +33,7 @@ func branchData(groups ...*Node) BranchData {
 	return data
 }
 
-func groupNames(data BranchData) []string {
+func groupNames(data model.BranchData) []string {
 	names := make([]string, 0, len(data.MainGroups))
 	for name := range data.MainGroups {
 		names = append(names, name)
@@ -40,29 +42,12 @@ func groupNames(data BranchData) []string {
 	return names
 }
 
-func childNames(n *Node) []string {
+func childNames(n *model.Node) []string {
 	return n.SubKeys
 }
 
-func subtreeNames(n *Node) []string {
-	names := []string{}
-	var walk func(node *Node, prefix string)
-	walk = func(node *Node, prefix string) {
-		for _, sk := range node.SubKeys {
-			child := node.Children[sk]
-			full := prefix + sk
-			names = append(names, full)
-			if len(child.Children) > 0 {
-				walk(child, full+"/")
-			}
-		}
-	}
-	walk(n, "")
-	return names
-}
-
 func TestParsePrefixList_EmptyStringReturnsNil(t *testing.T) {
-	result := parsePrefixList("")
+	result := ParsePrefixList("")
 
 	if result != nil {
 		t.Errorf("expected nil, got %v", result)
@@ -70,7 +55,7 @@ func TestParsePrefixList_EmptyStringReturnsNil(t *testing.T) {
 }
 
 func TestParsePrefixList_SingleValue(t *testing.T) {
-	result := parsePrefixList("feat")
+	result := ParsePrefixList("feat")
 
 	if len(result) != 1 || result[0] != "feat" {
 		t.Errorf("expected [feat], got %v", result)
@@ -78,7 +63,7 @@ func TestParsePrefixList_SingleValue(t *testing.T) {
 }
 
 func TestParsePrefixList_MultipleValues(t *testing.T) {
-	result := parsePrefixList("feat,fix,chore")
+	result := ParsePrefixList("feat,fix,chore")
 
 	expected := []string{"feat", "fix", "chore"}
 	if len(result) != len(expected) {
@@ -92,7 +77,7 @@ func TestParsePrefixList_MultipleValues(t *testing.T) {
 }
 
 func TestParsePrefixList_TrimsSpaces(t *testing.T) {
-	result := parsePrefixList(" feat , fix ")
+	result := ParsePrefixList(" feat , fix ")
 
 	expected := []string{"feat", "fix"}
 	if len(result) != len(expected) {
@@ -106,7 +91,7 @@ func TestParsePrefixList_TrimsSpaces(t *testing.T) {
 }
 
 func TestParsePrefixList_SkipsEmptySegments(t *testing.T) {
-	result := parsePrefixList("feat,,fix,")
+	result := ParsePrefixList("feat,,fix,")
 
 	expected := []string{"feat", "fix"}
 	if len(result) != len(expected) {
@@ -163,7 +148,7 @@ func TestFindMatchingChild_LeafNode(t *testing.T) {
 		),
 	)
 
-	result := findMatchingChild(root, "v1")
+	result := FindMatchingChild(root, "v1")
 
 	if result == nil || result.Name != "v1" {
 		t.Errorf("expected v1 node, got %v", result)
@@ -179,7 +164,7 @@ func TestFindMatchingChild_DeepPath(t *testing.T) {
 		),
 	)
 
-	result := findMatchingChild(root, "v2/refactor")
+	result := FindMatchingChild(root, "v2/refactor")
 
 	if result == nil || result.Name != "refactor" {
 		t.Errorf("expected refactor node, got %v", result)
@@ -191,7 +176,7 @@ func TestFindMatchingChild_NonExistentPath(t *testing.T) {
 		leaf("v1"),
 	)
 
-	result := findMatchingChild(root, "v99")
+	result := FindMatchingChild(root, "v99")
 
 	if result != nil {
 		t.Errorf("expected nil, got %v", result)
@@ -207,7 +192,7 @@ func TestFindMatchingChild_PartialPathReturnsIntermediate(t *testing.T) {
 		),
 	)
 
-	result := findMatchingChild(root, "v1")
+	result := FindMatchingChild(root, "v1")
 
 	if result == nil || result.Name != "v1" {
 		t.Errorf("expected v1 node, got %v", result)
@@ -224,7 +209,7 @@ func TestCopySubtree_CreatesDeepCopy(t *testing.T) {
 		),
 		leaf("d"),
 	)
-	dst := newNode("root")
+	dst := model.NewNode("root")
 
 	copySubtree(dst, src)
 
@@ -245,7 +230,7 @@ func TestCopySubtree_PreservesOrder(t *testing.T) {
 		leaf("a"),
 		leaf("b"),
 	)
-	dst := newNode("dst")
+	dst := model.NewNode("dst")
 
 	copySubtree(dst, src)
 
@@ -355,27 +340,27 @@ func TestCopyFilteredSubtree_NoExcludesReturnsFullCopy(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_EmptyFiltersReturnsOriginal(t *testing.T) {
+func TestApply_EmptyFiltersReturnsOriginal(t *testing.T) {
 	data := branchData(
 		testNode("feat", leaf("f-1")),
 		testNode("fix", leaf("fix-1")),
 	)
 
-	result := filterBranchData(data, nil, nil)
+	result := Apply(data, nil, nil)
 
 	if len(result.MainGroups) != 2 {
 		t.Fatalf("expected 2 groups, got %d", len(result.MainGroups))
 	}
 }
 
-func TestFilterBranchData_GroupLevelInclude(t *testing.T) {
+func TestApply_GroupLevelInclude(t *testing.T) {
 	data := branchData(
 		testNode("feat", leaf("f-1")),
 		testNode("fix", leaf("fix-1")),
 		testNode("chore", leaf("c-1")),
 	)
 
-	result := filterBranchData(data, []string{"feat", "fix"}, nil)
+	result := Apply(data, []string{"feat", "fix"}, nil)
 
 	names := groupNames(result)
 	if len(names) != 2 || names[0] != "feat" || names[1] != "fix" {
@@ -383,14 +368,14 @@ func TestFilterBranchData_GroupLevelInclude(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_GroupLevelExclude(t *testing.T) {
+func TestApply_GroupLevelExclude(t *testing.T) {
 	data := branchData(
 		testNode("feat", leaf("f-1")),
 		testNode("fix", leaf("fix-1")),
 		testNode("chore", leaf("c-1")),
 	)
 
-	result := filterBranchData(data, nil, []string{"fix"})
+	result := Apply(data, nil, []string{"fix"})
 
 	names := groupNames(result)
 	if len(names) != 2 || names[0] != "chore" || names[1] != "feat" {
@@ -398,32 +383,32 @@ func TestFilterBranchData_GroupLevelExclude(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_ExcludeAllGroupsResultEmpty(t *testing.T) {
+func TestApply_ExcludeAllGroupsResultEmpty(t *testing.T) {
 	data := branchData(
 		testNode("feat", leaf("f-1")),
 		testNode("fix", leaf("fix-1")),
 	)
 
-	result := filterBranchData(data, nil, []string{"feat", "fix"})
+	result := Apply(data, nil, []string{"feat", "fix"})
 
 	if len(result.MainGroups) != 0 {
 		t.Errorf("expected 0 groups, got %d", len(result.MainGroups))
 	}
 }
 
-func TestFilterBranchData_NonExistentGroupIgnored(t *testing.T) {
+func TestApply_NonExistentGroupIgnored(t *testing.T) {
 	data := branchData(
 		testNode("feat", leaf("f-1")),
 	)
 
-	result := filterBranchData(data, []string{"nonexistent"}, nil)
+	result := Apply(data, []string{"nonexistent"}, nil)
 
 	if len(result.MainGroups) != 0 {
 		t.Errorf("expected 0 groups, got %d", len(result.MainGroups))
 	}
 }
 
-func TestFilterBranchData_SubPathInclude(t *testing.T) {
+func TestApply_SubPathInclude(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			testNode("v1", leaf("smth")),
@@ -432,7 +417,7 @@ func TestFilterBranchData_SubPathInclude(t *testing.T) {
 		),
 	)
 
-	result := filterBranchData(data, []string{"backup/v1"}, nil)
+	result := Apply(data, []string{"backup/v1"}, nil)
 
 	backup := result.MainGroups["backup"]
 	if backup == nil {
@@ -446,7 +431,7 @@ func TestFilterBranchData_SubPathInclude(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_SubPathExclude(t *testing.T) {
+func TestApply_SubPathExclude(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			testNode("v1", leaf("smth")),
@@ -455,7 +440,7 @@ func TestFilterBranchData_SubPathExclude(t *testing.T) {
 		),
 	)
 
-	result := filterBranchData(data, nil, []string{"backup/v2"})
+	result := Apply(data, nil, []string{"backup/v2"})
 
 	backup := result.MainGroups["backup"]
 	if backup == nil {
@@ -472,7 +457,7 @@ func TestFilterBranchData_SubPathExclude(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_MultipleSubPathIncludes(t *testing.T) {
+func TestApply_MultipleSubPathIncludes(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			testNode("v1", leaf("smth")),
@@ -482,7 +467,7 @@ func TestFilterBranchData_MultipleSubPathIncludes(t *testing.T) {
 		testNode("feat", leaf("f-1")),
 	)
 
-	result := filterBranchData(data, []string{"backup/v1", "feat"}, nil)
+	result := Apply(data, []string{"backup/v1", "feat"}, nil)
 
 	names := groupNames(result)
 	if len(names) != 2 {
@@ -497,7 +482,7 @@ func TestFilterBranchData_MultipleSubPathIncludes(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_MixedGroupAndSubPathInclude(t *testing.T) {
+func TestApply_MixedGroupAndSubPathInclude(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			testNode("v1", leaf("smth")),
@@ -507,7 +492,7 @@ func TestFilterBranchData_MixedGroupAndSubPathInclude(t *testing.T) {
 		testNode("fix", leaf("fix-1")),
 	)
 
-	result := filterBranchData(data, []string{"backup/v1", "feat"}, nil)
+	result := Apply(data, []string{"backup/v1", "feat"}, nil)
 
 	names := groupNames(result)
 	if len(names) != 2 || names[0] != "backup" || names[1] != "feat" {
@@ -519,7 +504,7 @@ func TestFilterBranchData_MixedGroupAndSubPathInclude(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_DeepSubPathExclude(t *testing.T) {
+func TestApply_DeepSubPathExclude(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			testNode("v2",
@@ -536,7 +521,7 @@ func TestFilterBranchData_DeepSubPathExclude(t *testing.T) {
 		),
 	)
 
-	result := filterBranchData(data, nil, []string{"backup/v2/refactor"})
+	result := Apply(data, nil, []string{"backup/v2/refactor"})
 
 	backup := result.MainGroups["backup"]
 	if backup == nil {
@@ -558,7 +543,7 @@ func TestFilterBranchData_DeepSubPathExclude(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_DeepSubPathInclude(t *testing.T) {
+func TestApply_DeepSubPathInclude(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			testNode("v2",
@@ -574,7 +559,7 @@ func TestFilterBranchData_DeepSubPathInclude(t *testing.T) {
 		),
 	)
 
-	result := filterBranchData(data, []string{"backup/v2/refactor"}, nil)
+	result := Apply(data, []string{"backup/v2/refactor"}, nil)
 
 	backup := result.MainGroups["backup"]
 	if backup == nil {
@@ -594,13 +579,13 @@ func TestFilterBranchData_DeepSubPathInclude(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_ExcludeAndIncludeSameGroup_IncludeWins(t *testing.T) {
+func TestApply_ExcludeAndIncludeSameGroup_IncludeWins(t *testing.T) {
 	data := branchData(
 		testNode("feat", leaf("f-1")),
 		testNode("fix", leaf("fix-1")),
 	)
 
-	result := filterBranchData(data, []string{"feat"}, []string{"feat"})
+	result := Apply(data, []string{"feat"}, []string{"feat"})
 
 	names := groupNames(result)
 	if len(names) != 1 || names[0] != "feat" {
@@ -608,7 +593,7 @@ func TestFilterBranchData_ExcludeAndIncludeSameGroup_IncludeWins(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_ExcludeMultipleSubPaths(t *testing.T) {
+func TestApply_ExcludeMultipleSubPaths(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			testNode("v1", leaf("smth")),
@@ -617,7 +602,7 @@ func TestFilterBranchData_ExcludeMultipleSubPaths(t *testing.T) {
 		),
 	)
 
-	result := filterBranchData(data, nil, []string{"backup/v2", "backup/feat"})
+	result := Apply(data, nil, []string{"backup/v2", "backup/feat"})
 
 	backup := result.MainGroups["backup"]
 	if backup == nil {
@@ -629,7 +614,7 @@ func TestFilterBranchData_ExcludeMultipleSubPaths(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_GroupExcludeAndSubPathExclude(t *testing.T) {
+func TestApply_GroupExcludeAndSubPathExclude(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			testNode("v1", leaf("smth")),
@@ -638,7 +623,7 @@ func TestFilterBranchData_GroupExcludeAndSubPathExclude(t *testing.T) {
 		testNode("old", leaf("o-1")),
 	)
 
-	result := filterBranchData(data, nil, []string{"old", "backup/v2"})
+	result := Apply(data, nil, []string{"old", "backup/v2"})
 
 	names := groupNames(result)
 	if len(names) != 1 || names[0] != "backup" {
@@ -653,12 +638,12 @@ func TestFilterBranchData_GroupExcludeAndSubPathExclude(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_IsolatedFromOriginal(t *testing.T) {
+func TestApply_IsolatedFromOriginal(t *testing.T) {
 	data := branchData(
 		testNode("feat", leaf("f-1")),
 	)
 
-	_ = filterBranchData(data, []string{"feat"}, nil)
+	_ = Apply(data, []string{"feat"}, nil)
 
 	feat := data.MainGroups["feat"]
 	if feat == nil {
@@ -669,7 +654,7 @@ func TestFilterBranchData_IsolatedFromOriginal(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_ExcludeDoesNotMutateOriginal(t *testing.T) {
+func TestApply_ExcludeDoesNotMutateOriginal(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			leaf("v1"),
@@ -677,7 +662,7 @@ func TestFilterBranchData_ExcludeDoesNotMutateOriginal(t *testing.T) {
 		),
 	)
 
-	_ = filterBranchData(data, nil, []string{"backup/v2"})
+	_ = Apply(data, nil, []string{"backup/v2"})
 
 	backup := data.MainGroups["backup"]
 	if backup == nil {
@@ -688,12 +673,12 @@ func TestFilterBranchData_ExcludeDoesNotMutateOriginal(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_WholeGroupIncludeDeepCopies(t *testing.T) {
+func TestApply_WholeGroupIncludeDeepCopies(t *testing.T) {
 	data := branchData(
 		testNode("feat", leaf("f-1")),
 	)
 
-	result := filterBranchData(data, []string{"feat"}, nil)
+	result := Apply(data, []string{"feat"}, nil)
 
 	feat := result.MainGroups["feat"]
 	if feat == nil {
@@ -704,7 +689,7 @@ func TestFilterBranchData_WholeGroupIncludeDeepCopies(t *testing.T) {
 	}
 }
 
-func TestFilterBranchData_WholeGroupExcludeDeepCopies(t *testing.T) {
+func TestApply_WholeGroupExcludeDeepCopies(t *testing.T) {
 	data := branchData(
 		testNode("backup",
 			leaf("v1"),
@@ -712,7 +697,7 @@ func TestFilterBranchData_WholeGroupExcludeDeepCopies(t *testing.T) {
 		),
 	)
 
-	result := filterBranchData(data, nil, []string{"backup/v1"})
+	result := Apply(data, nil, []string{"backup/v1"})
 
 	backup := result.MainGroups["backup"]
 	if backup == nil {

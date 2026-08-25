@@ -1,4 +1,4 @@
-package main
+package git
 
 import (
 	"errors"
@@ -8,13 +8,15 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-git/go-git/v6"
+	gogit "github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
+
+	"git-branch-grouper-plugin/internal/model"
 )
 
 var defaultBranchNames = []string{"develop", "main", "master"}
 
-func validateRepoPath(path string) {
+func ValidateRepoPath(path string) {
 	if _, err := os.Stat(path); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			log.Fatalf("Directory doesn't exist: %s", path)
@@ -23,15 +25,15 @@ func validateRepoPath(path string) {
 	}
 }
 
-func openGitRepo(path string) *git.Repository {
-	repo, err := git.PlainOpen(path)
+func OpenRepo(path string) *gogit.Repository {
+	repo, err := gogit.PlainOpen(path)
 	if err != nil {
 		log.Fatalf("Failed to open repository: %v", err)
 	}
 	return repo
 }
 
-func collectBranches(repo *git.Repository) BranchData {
+func CollectBranches(repo *gogit.Repository) model.BranchData {
 	branches, err := repo.Branches()
 	if err != nil {
 		log.Fatalf("Failed to get branches: %v", err)
@@ -43,8 +45,8 @@ func collectBranches(repo *git.Repository) BranchData {
 	}
 	activeBranchName := activeBranch.Name().Short()
 
-	data := BranchData{
-		MainGroups:      make(map[string]*Node),
+	data := model.BranchData{
+		MainGroups:      make(map[string]*model.Node),
 		DefaultBranches: []string{},
 		OtherBranches:   []string{},
 	}
@@ -59,7 +61,7 @@ func collectBranches(repo *git.Repository) BranchData {
 		if len(splitted) > 1 {
 			rootNode, exists := data.MainGroups[prefix]
 			if !exists {
-				rootNode = newNode(prefix)
+				rootNode = model.NewNode(prefix)
 				data.MainGroups[prefix] = rootNode
 			}
 
@@ -70,7 +72,7 @@ func collectBranches(repo *git.Repository) BranchData {
 
 				child, childExists := curr.Children[part]
 				if !childExists {
-					child = newNode(part)
+					child = model.NewNode(part)
 					child.IsActive = isLast && isActive
 					curr.Children[part] = child
 					curr.SubKeys = append(curr.SubKeys, part)

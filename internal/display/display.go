@@ -1,4 +1,4 @@
-package main
+package display
 
 import (
 	"fmt"
@@ -6,9 +6,12 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+
+	"git-branch-grouper-plugin/internal/config"
+	"git-branch-grouper-plugin/internal/model"
 )
 
-func printResultsWithConfig(data BranchData, cfg Config, hasFilter bool) {
+func PrintResults(data model.BranchData, cfg config.Config, hasFilter bool) {
 	starColorStr := cfg.Colors["active_star"]
 
 	if !hasFilter {
@@ -49,7 +52,7 @@ func printResultsWithConfig(data BranchData, cfg Config, hasFilter bool) {
 	}
 }
 
-func printNode(node *Node, level int, parentColorStr string, starColorStr string, cfg Config) {
+func printNode(node *model.Node, level int, parentColorStr string, starColorStr string, cfg config.Config) {
 	tabulation := strings.Repeat("    ", level)
 	starColor := getColorPrinter(starColorStr)
 

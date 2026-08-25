@@ -7,7 +7,11 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/pelletier/go-toml/v2"
+
+	"git-branch-grouper-plugin/internal/config"
+	"git-branch-grouper-plugin/internal/display"
+	"git-branch-grouper-plugin/internal/filter"
+	"git-branch-grouper-plugin/internal/git"
 )
 
 func main() {
@@ -40,45 +44,23 @@ func main() {
 		log.Fatalf("Failed to get working directory: %v", err)
 	}
 
-	validateRepoPath(repoPath)
+	git.ValidateRepoPath(repoPath)
 
-	cfg := loadConfig()
+	cfg := config.Load()
 
 	if sparseVal {
 		cfg.Main.Sparse = true
 	}
 
-	includeList := parsePrefixList(includeVal)
-	excludeList := parsePrefixList(excludeVal)
+	includeList := filter.ParsePrefixList(includeVal)
+	excludeList := filter.ParsePrefixList(excludeVal)
 
-	gitRepo := openGitRepo(repoPath)
-	branchData := collectBranches(gitRepo)
+	repo := git.OpenRepo(repoPath)
+	data := git.CollectBranches(repo)
 
-	branchData = filterBranchData(branchData, includeList, excludeList)
+	data = filter.Apply(data, includeList, excludeList)
 
-	printResultsWithConfig(branchData, cfg, len(includeList) > 0 || len(excludeList) > 0)
-}
-
-func loadConfig() Config {
-	cfg := Config{
-		Colors: map[string]string{
-			"default":     "red",
-			"other":       "yellow",
-			"active_star": "green",
-		},
-		Groups: map[string]string{},
-	}
-
-	file, err := os.ReadFile("config.toml")
-	if err != nil {
-		return cfg
-	}
-
-	if err := toml.Unmarshal(file, &cfg); err != nil {
-		log.Printf("Failed to parse config.toml: %v", err)
-	}
-
-	return cfg
+	display.PrintResults(data, cfg, len(includeList) > 0 || len(excludeList) > 0)
 }
 
 func printUsage() {

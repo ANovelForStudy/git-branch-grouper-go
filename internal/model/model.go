@@ -1,14 +1,4 @@
-package main
-
-type ConfigMain struct {
-	Sparse bool `toml:"sparse"`
-}
-
-type Config struct {
-	Main   ConfigMain       `toml:"main"`
-	Colors map[string]string `toml:"colors"`
-	Groups map[string]string `toml:"groups"`
-}
+package model
 
 type Node struct {
 	Name     string
@@ -23,7 +13,7 @@ type BranchData struct {
 	OtherBranches   []string
 }
 
-func newNode(name string) *Node {
+func NewNode(name string) *Node {
 	return &Node{
 		Name:     name,
 		Children: make(map[string]*Node),
