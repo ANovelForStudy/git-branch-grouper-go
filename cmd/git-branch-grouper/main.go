@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/fatih/color"
@@ -14,19 +13,29 @@ import (
 	"git-branch-grouper-plugin/internal/git"
 )
 
+var version = "dev"
+
 func main() {
 	var includeLong, includeShort string
 	var excludeLong, excludeShort string
 	var sparseLong, sparseShort bool
+	var showVersion bool
 
-	flag.StringVar(&includeLong, "include", "", "Comma-separated list of groups or sub-paths to show (e.g. feat,backup/v1)")
+	flag.StringVar(&includeLong, "include", "", "Show only specified groups or sub-paths")
 	flag.StringVar(&includeShort, "i", "", "Shorthand for --include")
-	flag.StringVar(&excludeLong, "exclude", "", "Comma-separated list of groups or sub-paths to hide (e.g. old,backup/v2)")
+	flag.StringVar(&excludeLong, "exclude", "", "Hide specified groups or sub-paths")
 	flag.StringVar(&excludeShort, "e", "", "Shorthand for --exclude")
-	flag.BoolVar(&sparseLong, "sparse", false, "Override config.toml: add blank line between groups")
+	flag.BoolVar(&sparseLong, "sparse", false, "Add blank line between groups")
 	flag.BoolVar(&sparseShort, "s", false, "Shorthand for --sparse")
+	flag.BoolVar(&showVersion, "version", false, "Print version and exit")
+	flag.BoolVar(&showVersion, "v", false, "Shorthand for --version")
 	flag.Usage = printUsage
 	flag.Parse()
+
+	if showVersion {
+		fmt.Printf("git-branch-grouper v%s\n", version)
+		os.Exit(0)
+	}
 
 	mergeFlags := func(long, short string) string {
 		if short != "" {
@@ -41,12 +50,14 @@ func main() {
 
 	repoPath, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("Failed to get working directory: %v", err)
+		fatalf("cannot determine working directory: %v", err)
 	}
 
-	git.ValidateRepoPath(repoPath)
+	if err := git.ValidateRepoPath(repoPath); err != nil {
+		fatalf("%v", err)
+	}
 
-	cfg := config.Load()
+	cfg, _ := config.Load()
 
 	if sparseVal {
 		cfg.Main.Sparse = true
@@ -55,53 +66,88 @@ func main() {
 	includeList := filter.ParsePrefixList(includeVal)
 	excludeList := filter.ParsePrefixList(excludeVal)
 
-	repo := git.OpenRepo(repoPath)
-	data := git.CollectBranches(repo)
+	repo, err := git.OpenRepo(repoPath)
+	if err != nil {
+		fatalf("%v", err)
+	}
+
+	data, err := git.CollectBranches(repo)
+	if err != nil {
+		fatalf("%v", err)
+	}
 
 	data = filter.Apply(data, includeList, excludeList)
 
 	display.PrintResults(data, cfg, len(includeList) > 0 || len(excludeList) > 0)
 }
 
+func fatalf(format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	red := color.New(color.FgRed, color.Bold)
+	red.Fprint(os.Stderr, "error: ")
+	color.New(color.FgWhite).Fprintln(os.Stderr, msg)
+	os.Exit(1)
+}
+
 func printUsage() {
 	bold := color.New(color.Bold)
-	green := color.New(color.FgGreen)
+	dim := color.New(color.FgHiBlack)
 	cyan := color.New(color.FgCyan)
-	white := color.New(color.FgWhite)
+	green := color.New(color.FgGreen)
 	yellow := color.New(color.FgYellow)
+	white := color.New(color.FgWhite)
 
-	bold.Println("git-branch-grouper-plugin")
-	fmt.Println("  Display and filter git branches grouped by prefix.")
+	name := color.New(color.FgCyan, color.Bold)
+
 	fmt.Println()
-	bold.Println("USAGE:")
-	white.Println("  git-branch-grouper-plugin [flags]")
+	name.Print("  git-branch-grouper")
+	dim.Printf("  v%s", version)
 	fmt.Println()
-	bold.Println("FLAGS:")
-	fmt.Printf("  %-12s  %s\n", bold.Sprint("-i, --include"), "Show only specified groups or sub-paths")
-	fmt.Printf("  %-12s  %s\n", bold.Sprint("-e, --exclude"), "Hide specified groups or sub-paths")
-	fmt.Printf("  %-12s  %s\n", bold.Sprint("-s, --sparse"), "Add blank line between groups")
-	fmt.Printf("  %-12s  %s\n", bold.Sprint("-h, --help"), "Show this help message")
+	white.Println("  Organize and navigate git branches with prefix-based grouping.")
 	fmt.Println()
-	bold.Println("EXAMPLES:")
-	green.Println("  git-branch-grouper-plugin --include feat,fix")
-	yellow.Println("    Show only 'feat' and 'fix' groups.")
+
+	bold.Println("  USAGE")
+	white.Println("    git-branch-grouper [flags]")
 	fmt.Println()
-	green.Println("  git-branch-grouper-plugin -e backup/v2")
-	yellow.Println("    Hide 'v2' subtree inside 'backup' group.")
+
+	bold.Println("  FLAGS")
+	printFlag("-i, --include", "Show only specified groups or sub-paths")
+	printFlag("-e, --exclude", "Hide specified groups or sub-paths")
+	printFlag("-s, --sparse", "Add blank line between groups")
+	printFlag("-v, --version", "Print version and exit")
+	printFlag("-h, --help", "Show this help message")
 	fmt.Println()
-	green.Println("  git-branch-grouper-plugin -i backup/v1,feat")
-	yellow.Println("    Show 'feat' group and 'v1' subtree inside 'backup'.")
+
+	bold.Println("  EXAMPLES")
+	green.Println("    git-branch-grouper --include feat,fix")
+	yellow.Println("      Show only 'feat' and 'fix' groups.")
 	fmt.Println()
-	green.Println("  git-branch-grouper-plugin -s")
-	yellow.Println("    Display with blank lines between groups.")
+	green.Println("    git-branch-grouper -e backup/v2")
+	yellow.Println("      Hide 'v2' subtree inside 'backup' group.")
 	fmt.Println()
-	bold.Println("GROUPS:")
-	cyan.Println("  [default]  Standard branches (main, master, develop)")
-	cyan.Println("  [other]    Branches without a group prefix")
-	cyan.Println("  prefix/    Hierarchical groups (feat/, fix/, etc.)")
-	cyan.Println("  sub/path   Sub-paths within groups (backup/v2, feat/login)")
+	green.Println("    git-branch-grouper -i backup/v1,feat")
+	yellow.Println("      Show 'feat' group and 'v1' subtree inside 'backup'.")
 	fmt.Println()
-	bold.Println("CONFIGURATION:")
-	white.Println("  Colors and groups can be customized in config.toml")
-	white.Println("  placed in the working directory.")
+	green.Println("    git-branch-grouper -s")
+	yellow.Println("      Display with blank lines between groups.")
+	fmt.Println()
+
+	bold.Println("  BRANCH GROUPS")
+	cyan.Println("    [default]   Standard branches (main, master, develop)")
+	cyan.Println("    [other]     Branches without a group prefix")
+	cyan.Println("    prefix/     Hierarchical groups (feat/, fix/, etc.)")
+	cyan.Println("    sub/path    Sub-paths within groups (backup/v2, feat/login)")
+	fmt.Println()
+
+	bold.Println("  CONFIGURATION")
+	white.Println("    Place config.toml next to the binary to customize colors and groups.")
+	white.Println("    See README.md for the full configuration reference.")
+	fmt.Println()
+}
+
+func printFlag(flags, description string) {
+	bold := color.New(color.Bold)
+	dim := color.New(color.FgHiBlack)
+	fmt.Printf("    %-18s", bold.Sprint(flags))
+	dim.Println(description)
 }

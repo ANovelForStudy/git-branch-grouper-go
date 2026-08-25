@@ -2,8 +2,8 @@ package git
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"slices"
 	"strings"
@@ -16,32 +16,34 @@ import (
 
 var defaultBranchNames = []string{"develop", "main", "master"}
 
-func ValidateRepoPath(path string) {
-	if _, err := os.Stat(path); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			log.Fatalf("Directory doesn't exist: %s", path)
-		}
-		log.Fatalf("Failed to open directory: %v", err)
+func ValidateRepoPath(path string) error {
+	_, err := os.Stat(path)
+	if err == nil {
+		return nil
 	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("directory does not exist: %s", path)
+	}
+	return fmt.Errorf("cannot access directory %s: %w", path, err)
 }
 
-func OpenRepo(path string) *gogit.Repository {
+func OpenRepo(path string) (*gogit.Repository, error) {
 	repo, err := gogit.PlainOpen(path)
 	if err != nil {
-		log.Fatalf("Failed to open repository: %v", err)
+		return nil, fmt.Errorf("not a git repository (or any parent up to root): %s", path)
 	}
-	return repo
+	return repo, nil
 }
 
-func CollectBranches(repo *gogit.Repository) model.BranchData {
+func CollectBranches(repo *gogit.Repository) (model.BranchData, error) {
 	branches, err := repo.Branches()
 	if err != nil {
-		log.Fatalf("Failed to get branches: %v", err)
+		return model.BranchData{}, fmt.Errorf("failed to list branches: %w", err)
 	}
 
 	activeBranch, err := repo.Head()
 	if err != nil {
-		log.Fatalf("Failed to get an active branch: %v", err)
+		return model.BranchData{}, fmt.Errorf("failed to resolve HEAD: %w", err)
 	}
 	activeBranchName := activeBranch.Name().Short()
 
@@ -98,8 +100,8 @@ func CollectBranches(repo *gogit.Repository) model.BranchData {
 	})
 
 	if err != nil {
-		log.Fatalf("Error iterating branches: %v", err)
+		return model.BranchData{}, fmt.Errorf("failed to iterate branches: %w", err)
 	}
 
-	return data
+	return data, nil
 }
