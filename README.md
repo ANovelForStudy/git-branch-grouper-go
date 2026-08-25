@@ -1,4 +1,4 @@
-# 🗂️🪓 Git Branch Grouper
+# 🌿🎨 Git Branch Grouper
 
 A fast, colorized CLI tool that displays git branches grouped by prefix with hierarchical navigation and powerful filtering.
 
