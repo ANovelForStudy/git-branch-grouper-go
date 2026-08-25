@@ -1,8 +1,9 @@
 package config
 
 import (
-	"log"
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -17,7 +18,7 @@ type Config struct {
 	Groups map[string]string `toml:"groups"`
 }
 
-func Load() Config {
+func Load() (Config, string) {
 	cfg := Config{
 		Colors: map[string]string{
 			"default":     "red",
@@ -27,14 +28,21 @@ func Load() Config {
 		Groups: map[string]string{},
 	}
 
-	file, err := os.ReadFile("config.toml")
+	execPath, err := os.Executable()
 	if err != nil {
-		return cfg
+		return cfg, ""
+	}
+
+	configPath := filepath.Join(filepath.Dir(execPath), "config.toml")
+
+	file, err := os.ReadFile(configPath)
+	if err != nil {
+		return cfg, configPath
 	}
 
 	if err := toml.Unmarshal(file, &cfg); err != nil {
-		log.Printf("Failed to parse config.toml: %v", err)
+		fmt.Fprintf(os.Stderr, "Warning: failed to parse %s: %v\n", configPath, err)
 	}
 
-	return cfg
+	return cfg, configPath
 }
