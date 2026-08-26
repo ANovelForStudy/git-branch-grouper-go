@@ -52,7 +52,7 @@ func PrintResults(w io.Writer, data model.BranchData, cfg config.Config, hasFilt
 		}
 	}
 
-	if !hasFilter {
+	if !hasFilter && len(data.OtherBranches) > 0 {
 		otherColorStr := cfg.Colors["other"]
 		title := strings.ReplaceAll(cfg.Format.GroupPrefix, "{group}", "other")
 		printSimpleGroup(w, title, data.OtherBranches, otherColorStr, starColorStr, marker, cfg.Format.Indent, cfg.Main.Sparse)

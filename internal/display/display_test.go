@@ -25,9 +25,9 @@ func makeNode(name string, isActive bool, children ...*model.Node) *model.Node {
 func defaultConfig() config.Config {
 	return config.Config{
 		Colors: map[string]string{
-			"default":     "white",
-			"other":       "hi-black",
-			"active_star": "hi-yellow",
+			"default":     "#FF3333",
+			"other":       "#FBBF24",
+			"active_star": "#b7ff32",
 		},
 		Groups: map[string]string{},
 		Format: config.Format{
@@ -183,7 +183,7 @@ func TestPrintResultsGroupPrefixOnlyForSpecialGroups(t *testing.T) {
 			"fix": makeNode("fix", false, makeNode("bug", false)),
 		},
 		DefaultBranches: []string{"main"},
-		OtherBranches:   []string{},
+		OtherBranches:   []string{"random-branch"},
 	}
 
 	output := capture(func(w io.Writer) {
@@ -361,5 +361,29 @@ func TestPrintResultsNoColorMode(t *testing.T) {
 	}
 	if !strings.Contains(output, "* auth") {
 		t.Error("expected '* auth' with star marker")
+	}
+}
+
+func TestPrintResultsEmptyOtherGroupHidden(t *testing.T) {
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", false)),
+		},
+		DefaultBranches: []string{"main"},
+		OtherBranches:   []string{},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, defaultConfig(), false)
+	})
+
+	if strings.Contains(output, "other") {
+		t.Errorf("[other] group should not appear when OtherBranches is empty, got:\n%s", output)
+	}
+	if !strings.Contains(output, "[default]") {
+		t.Error("expected [default] header")
+	}
+	if !strings.Contains(output, "feat/") {
+		t.Error("expected feat/ header")
 	}
 }
