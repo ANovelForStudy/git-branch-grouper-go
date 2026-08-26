@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fatih/color"
+
 	"git-branch-grouper-plugin/internal/config"
 	"git-branch-grouper-plugin/internal/model"
 )
@@ -325,5 +327,39 @@ func TestPrintResultsWithFilter(t *testing.T) {
 	}
 	if !strings.Contains(output, "feat/") {
 		t.Error("should contain feat/ even with filter")
+	}
+}
+
+func TestPrintResultsNoColorMode(t *testing.T) {
+	old := color.NoColor
+	color.NoColor = true
+	defer func() { color.NoColor = old }()
+
+	cfg := defaultConfig()
+	cfg.Groups["feat"] = "red"
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", true)),
+		},
+		DefaultBranches: []string{"main"},
+		OtherBranches:   []string{"misc"},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, false)
+	})
+
+	if strings.Contains(output, "\x1b[") {
+		t.Errorf("output should not contain ANSI escape codes when NoColor is set, got:\n%s", output)
+	}
+	if !strings.Contains(output, "[default]") {
+		t.Error("expected [default] header")
+	}
+	if !strings.Contains(output, "feat/") {
+		t.Error("expected feat/ header")
+	}
+	if !strings.Contains(output, "* auth") {
+		t.Error("expected '* auth' with star marker")
 	}
 }
