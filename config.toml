@@ -7,21 +7,35 @@ indent = "  "
 branch_marker = "*"
 
 [colors]
-default = "red"
-other = "yellow"
-active_star = "green"
+default = "#FF3333"
+other = "#FBBF24"
+active_star = "#b7ff32"
 
 [groups]
-backup   = "blue"
-build    = "magenta"
-chore    = "white"
-ci       = "cyan"
-docs     = "blue"
-exp      = "magenta"
-feat     = "green"
-fix      = "red"
-hotfix   = "red"
-old      = "yellow"
-refactor = "cyan"
-release  = "green"
-test     = "blue"
+# STABLE
+backup   = "#64748B"
+default  = "#1E293B"
+
+# DEVELOPMENT
+feat     = "#10B981"
+refactor = "#34D399"
+
+# CRITICAL
+fix      = "#EF4444"
+hotfix   = "#DC2626"
+
+# INFRASTRUCTURE
+build    = "#3B82F6"
+ci       = "#22D3EE"
+release  = "#0EA5E9"
+
+# DOCUMENTATION & TESTS
+docs     = "#818CF8"
+test     = "#C084FC"
+
+# UTILITY
+chore    = "#9CA3AF"
+
+# LEGACY & EXPERIMENTS
+old      = "#F59E0B"
+exp      = "#F97316"

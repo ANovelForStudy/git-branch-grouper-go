@@ -30,11 +30,26 @@ type Config struct {
 func Load(explicitPath ...string) (Config, string) {
 	cfg := Config{
 		Colors: map[string]string{
-			"default":     "red",
-			"other":       "yellow",
-			"active_star": "green",
+			"default":     "#FF3333",
+			"other":       "#FBBF24",
+			"active_star": "#b7ff32",
 		},
-		Groups: map[string]string{},
+		Groups: map[string]string{
+			"backup":   "#64748B",
+			"default":  "#1E293B",
+			"feat":     "#10B981",
+			"refactor": "#34D399",
+			"fix":      "#EF4444",
+			"hotfix":   "#DC2626",
+			"build":    "#3B82F6",
+			"ci":       "#22D3EE",
+			"release":  "#0EA5E9",
+			"docs":     "#818CF8",
+			"test":     "#C084FC",
+			"chore":    "#9CA3AF",
+			"old":      "#F59E0B",
+			"exp":      "#F97316",
+		},
 		Format: Format{
 			GroupPrefix:  "[{group}]",
 			Indent:       "    ",

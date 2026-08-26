@@ -25,9 +25,9 @@ func makeNode(name string, isActive bool, children ...*model.Node) *model.Node {
 func defaultConfig() config.Config {
 	return config.Config{
 		Colors: map[string]string{
-			"default":     "red",
-			"other":       "yellow",
-			"active_star": "green",
+			"default":     "white",
+			"other":       "hi-black",
+			"active_star": "hi-yellow",
 		},
 		Groups: map[string]string{},
 		Format: config.Format{
