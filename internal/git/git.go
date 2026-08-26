@@ -98,7 +98,6 @@ func CollectBranches(repo *gogit.Repository) (model.BranchData, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return model.BranchData{}, fmt.Errorf("failed to iterate branches: %w", err)
 	}
