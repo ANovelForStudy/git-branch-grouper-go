@@ -2,9 +2,16 @@ repos:
   - repo: https://github.com/dnephin/pre-commit-golang
     rev: v0.5.1
     hooks:
-      - id: go-fmt
-        stages: [pre-push]
       - id: go-mod-tidy
         stages: [pre-push]
       - id: golangci-lint
+        stages: [pre-push]
+
+  - repo: local
+    hooks:
+      - id: gofumpt
+        name: gofumpt
+        entry: gofumpt -l -w
+        language: system
+        files: '\.go$'
         stages: [pre-push]
