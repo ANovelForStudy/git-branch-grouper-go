@@ -3,5 +3,8 @@ repos:
     rev: v0.5.1
     hooks:
       - id: go-fmt
+        stages: [pre-push]
       - id: go-mod-tidy
+        stages: [pre-push]
       - id: golangci-lint
+        stages: [pre-push]
