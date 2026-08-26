@@ -2,6 +2,10 @@
 
 A fast, colorized CLI tool that displays git branches grouped by prefix with hierarchical navigation and powerful filtering.
 
+### Demo
+
+![Demo](images/diff.jpg)
+
 ### Core Principles
 
 * **Native Git Access**: Powered by `go-git` - no external `git` binary required. Works anywhere Go compiles.
