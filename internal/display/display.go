@@ -33,7 +33,7 @@ func PrintResults(data model.BranchData, cfg config.Config, hasFilter bool) {
 
 		title := fmt.Sprintf("%s/", groupName)
 		titleColor := getColorPrinter(groupColorStr)
-		titleColor.Println(title)
+		_, _ = titleColor.Println(title)
 
 		rootNode := data.MainGroups[groupName]
 		sort.Strings(rootNode.SubKeys)
@@ -65,20 +65,20 @@ func printNode(node *model.Node, level int, parentColorStr string, starColorStr 
 	if len(node.Children) == 0 {
 		if node.IsActive {
 			fmt.Print(tabulation)
-			starColor.Print("* ")
-			nodeColor.Println(node.Name)
+			_, _ = starColor.Print("* ")
+			_, _ = nodeColor.Println(node.Name)
 		} else {
-			nodeColor.Println(tabulation + node.Name)
+			_, _ = nodeColor.Println(tabulation + node.Name)
 		}
 		return
 	}
 
 	if node.IsActive {
 		fmt.Print(tabulation)
-		starColor.Print("* ")
-		nodeColor.Println(node.Name + "/")
+		_, _ = starColor.Print("* ")
+		_, _ = nodeColor.Println(node.Name + "/")
 	} else {
-		nodeColor.Println(tabulation + node.Name + "/")
+		_, _ = nodeColor.Println(tabulation + node.Name + "/")
 	}
 
 	sort.Strings(node.SubKeys)
@@ -89,7 +89,7 @@ func printNode(node *model.Node, level int, parentColorStr string, starColorStr 
 
 func printSimpleGroup(title string, branches []string, titleColorStr string, starColorStr string, sparse bool) {
 	titleColor := getColorPrinter(titleColorStr)
-	titleColor.Println(title)
+	_, _ = titleColor.Println(title)
 
 	starColor := getColorPrinter(starColorStr)
 	tabulation := "    "
@@ -98,7 +98,7 @@ func printSimpleGroup(title string, branches []string, titleColorStr string, sta
 	for _, branch := range branches {
 		if strings.HasPrefix(branch, "* ") {
 			fmt.Print(tabulation)
-			starColor.Print("* ")
+			_, _ = starColor.Print("* ")
 			fmt.Println(strings.TrimPrefix(branch, "* "))
 		} else {
 			fmt.Println(tabulation, branch)

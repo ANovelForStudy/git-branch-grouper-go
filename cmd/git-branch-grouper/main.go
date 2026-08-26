@@ -84,8 +84,8 @@ func main() {
 func fatalf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	red := color.New(color.FgRed, color.Bold)
-	red.Fprint(os.Stderr, "error: ")
-	color.New(color.FgWhite).Fprintln(os.Stderr, msg)
+	_, _ = red.Fprint(os.Stderr, "error: ")
+	_, _ = color.New(color.FgWhite).Fprintln(os.Stderr, msg)
 	os.Exit(1)
 }
 
@@ -100,17 +100,17 @@ func printUsage() {
 	name := color.New(color.FgCyan, color.Bold)
 
 	fmt.Println()
-	name.Print("  git-branch-grouper")
-	dim.Printf("  v%s", version)
+	_, _ = name.Print("  git-branch-grouper")
+	_, _ = dim.Printf("  v%s", version)
 	fmt.Println()
-	white.Println("  Organize and navigate git branches with prefix-based grouping.")
-	fmt.Println()
-
-	bold.Println("  USAGE")
-	white.Println("    git-branch-grouper [flags]")
+	_, _ = white.Println("  Organize and navigate git branches with prefix-based grouping.")
 	fmt.Println()
 
-	bold.Println("  FLAGS")
+	_, _ = bold.Println("  USAGE")
+	_, _ = white.Println("    git-branch-grouper [flags]")
+	fmt.Println()
+
+	_, _ = bold.Println("  FLAGS")
 	printFlag("-i, --include", "Show only specified groups or sub-paths")
 	printFlag("-e, --exclude", "Hide specified groups or sub-paths")
 	printFlag("-s, --sparse", "Add blank line between groups")
@@ -118,30 +118,30 @@ func printUsage() {
 	printFlag("-h, --help", "Show this help message")
 	fmt.Println()
 
-	bold.Println("  EXAMPLES")
-	green.Println("    git-branch-grouper --include feat,fix")
-	yellow.Println("      Show only 'feat' and 'fix' groups.")
+	_, _ = bold.Println("  EXAMPLES")
+	_, _ = green.Println("    git-branch-grouper --include feat,fix")
+	_, _ = yellow.Println("      Show only 'feat' and 'fix' groups.")
 	fmt.Println()
-	green.Println("    git-branch-grouper -e backup/v2")
-	yellow.Println("      Hide 'v2' subtree inside 'backup' group.")
+	_, _ = green.Println("    git-branch-grouper -e backup/v2")
+	_, _ = yellow.Println("      Hide 'v2' subtree inside 'backup' group.")
 	fmt.Println()
-	green.Println("    git-branch-grouper -i backup/v1,feat")
-	yellow.Println("      Show 'feat' group and 'v1' subtree inside 'backup'.")
+	_, _ = green.Println("    git-branch-grouper -i backup/v1,feat")
+	_, _ = yellow.Println("      Show 'feat' group and 'v1' subtree inside 'backup'.")
 	fmt.Println()
-	green.Println("    git-branch-grouper -s")
-	yellow.Println("      Display with blank lines between groups.")
-	fmt.Println()
-
-	bold.Println("  BRANCH GROUPS")
-	cyan.Println("    [default]   Standard branches (main, master, develop)")
-	cyan.Println("    [other]     Branches without a group prefix")
-	cyan.Println("    prefix/     Hierarchical groups (feat/, fix/, etc.)")
-	cyan.Println("    sub/path    Sub-paths within groups (backup/v2, feat/login)")
+	_, _ = green.Println("    git-branch-grouper -s")
+	_, _ = yellow.Println("      Display with blank lines between groups.")
 	fmt.Println()
 
-	bold.Println("  CONFIGURATION")
-	white.Println("    Place config.toml next to the binary to customize colors and groups.")
-	white.Println("    See README.md for the full configuration reference.")
+	_, _ = bold.Println("  BRANCH GROUPS")
+	_, _ = cyan.Println("    [default]   Standard branches (main, master, develop)")
+	_, _ = cyan.Println("    [other]     Branches without a group prefix")
+	_, _ = cyan.Println("    prefix/     Hierarchical groups (feat/, fix/, etc.)")
+	_, _ = cyan.Println("    sub/path    Sub-paths within groups (backup/v2, feat/login)")
+	fmt.Println()
+
+	_, _ = bold.Println("  CONFIGURATION")
+	_, _ = white.Println("    Place config.toml next to the binary to customize colors and groups.")
+	_, _ = white.Println("    See README.md for the full configuration reference.")
 	fmt.Println()
 }
 
@@ -149,5 +149,5 @@ func printFlag(flags, description string) {
 	bold := color.New(color.Bold)
 	dim := color.New(color.FgHiBlack)
 	fmt.Printf("    %-18s", bold.Sprint(flags))
-	dim.Println(description)
+	_, _ = dim.Println(description)
 }

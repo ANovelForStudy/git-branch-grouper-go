@@ -46,7 +46,7 @@ func Apply(data model.BranchData, includeList, excludeList []string) model.Branc
 		}
 
 		hasSubInclude := inInclude && len(includeTree[groupName]) > 0
-		hasSubExclude := excludeTree[groupName] != nil && len(excludeTree[groupName]) > 0
+		hasSubExclude := len(excludeTree[groupName]) > 0
 
 		if hasSubInclude {
 			result := model.NewNode(srcNode.Name)
