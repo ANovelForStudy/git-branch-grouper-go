@@ -140,7 +140,11 @@ func printUsage() {
 	fmt.Println()
 
 	_, _ = bold.Println("  CONFIGURATION")
-	_, _ = white.Println("    Place config.toml next to the binary to customize colors and groups.")
+	_, _ = white.Println("    Config is loaded from the first path found:")
+	_, _ = dim.Println("      1. ./config.toml")
+	_, _ = dim.Println("      2. $XDG_CONFIG_HOME/git-branch-grouper/config.toml")
+	_, _ = dim.Println("      3. ~/.config/git-branch-grouper/config.toml")
+	_, _ = dim.Println("      4. <binary-dir>/config.toml")
 	_, _ = white.Println("    See README.md for the full configuration reference.")
 	fmt.Println()
 }

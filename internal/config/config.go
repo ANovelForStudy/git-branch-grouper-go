@@ -8,6 +8,8 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+const appName = "git-branch-grouper"
+
 type Main struct {
 	Sparse bool `toml:"sparse"`
 }
@@ -28,12 +30,7 @@ func Load() (Config, string) {
 		Groups: map[string]string{},
 	}
 
-	execPath, err := os.Executable()
-	if err != nil {
-		return cfg, ""
-	}
-
-	configPath := filepath.Join(filepath.Dir(execPath), "config.toml")
+	configPath := resolveConfigPath()
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
@@ -45,4 +42,33 @@ func Load() (Config, string) {
 	}
 
 	return cfg, configPath
+}
+
+func resolveConfigPath() string {
+	if p := filepath.Join(".", "config.toml"); fileExists(p) {
+		return p
+	}
+
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		if p := filepath.Join(xdg, appName, "config.toml"); fileExists(p) {
+			return p
+		}
+	}
+
+	if home, err := os.UserHomeDir(); err == nil {
+		if p := filepath.Join(home, ".config", appName, "config.toml"); fileExists(p) {
+			return p
+		}
+	}
+
+	if execPath, err := os.Executable(); err == nil {
+		return filepath.Join(filepath.Dir(execPath), "config.toml")
+	}
+
+	return filepath.Join(".", "config.toml")
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
