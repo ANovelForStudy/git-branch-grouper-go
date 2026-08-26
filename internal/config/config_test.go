@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/pelletier/go-toml/v2"
@@ -120,5 +122,45 @@ branch_marker = "•"
 	}
 	if cfg.Format.Indent != "    " {
 		t.Errorf("Indent should retain default %q, got %q", "    ", cfg.Format.Indent)
+	}
+}
+
+func TestLoadWithExplicitPath(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "custom.toml")
+	content := []byte(`
+[format]
+branch_marker = "+"
+`)
+	if err := os.WriteFile(cfgPath, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, returned := Load(cfgPath)
+
+	if returned != cfgPath {
+		t.Errorf("returned path = %q, want %q", returned, cfgPath)
+	}
+	if cfg.Format.BranchMarker != "+" {
+		t.Errorf("BranchMarker = %q, want %q", cfg.Format.BranchMarker, "+")
+	}
+}
+
+func TestLoadWithExplicitPathNotFound(t *testing.T) {
+	cfg, returned := Load("/nonexistent/config.toml")
+
+	if returned != "/nonexistent/config.toml" {
+		t.Errorf("returned path = %q, want /nonexistent/config.toml", returned)
+	}
+	if cfg.Format.BranchMarker != "*" {
+		t.Errorf("BranchMarker should be default '*', got %q", cfg.Format.BranchMarker)
+	}
+}
+
+func TestLoadWithEmptyExplicitPath(t *testing.T) {
+	cfg, _ := Load("")
+
+	if cfg.Format.BranchMarker != "*" {
+		t.Errorf("BranchMarker should be default '*', got %q", cfg.Format.BranchMarker)
 	}
 }

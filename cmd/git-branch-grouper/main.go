@@ -19,7 +19,9 @@ func main() {
 	var includeLong, includeShort string
 	var excludeLong, excludeShort string
 	var sparseLong, sparseShort bool
+	var noColorLong, noColorShort bool
 	var showVersion bool
+	var configPath string
 
 	flag.StringVar(&includeLong, "include", "", "Show only specified groups or sub-paths")
 	flag.StringVar(&includeShort, "i", "", "Shorthand for --include")
@@ -27,8 +29,11 @@ func main() {
 	flag.StringVar(&excludeShort, "e", "", "Shorthand for --exclude")
 	flag.BoolVar(&sparseLong, "sparse", false, "Add blank line between groups")
 	flag.BoolVar(&sparseShort, "s", false, "Shorthand for --sparse")
+	flag.BoolVar(&noColorLong, "no-color", false, "Disable colored output")
+	flag.BoolVar(&noColorShort, "n", false, "Shorthand for --no-color")
 	flag.BoolVar(&showVersion, "version", false, "Print version and exit")
 	flag.BoolVar(&showVersion, "v", false, "Shorthand for --version")
+	flag.StringVar(&configPath, "config", "", "Path to config file")
 	flag.Usage = printUsage
 	flag.Parse()
 
@@ -47,6 +52,11 @@ func main() {
 	includeVal := mergeFlags(includeLong, includeShort)
 	excludeVal := mergeFlags(excludeLong, excludeShort)
 	sparseVal := sparseLong || sparseShort
+	noColor := noColorLong || noColorShort || os.Getenv("NO_COLOR") != ""
+
+	if noColor {
+		color.NoColor = true
+	}
 
 	repoPath, err := os.Getwd()
 	if err != nil {
@@ -57,7 +67,7 @@ func main() {
 		fatalf("%v", err)
 	}
 
-	cfg, _ := config.Load()
+	cfg, _ := config.Load(configPath)
 
 	if sparseVal {
 		cfg.Main.Sparse = true
@@ -114,6 +124,8 @@ func printUsage() {
 	printFlag("-i, --include", "Show only specified groups or sub-paths")
 	printFlag("-e, --exclude", "Hide specified groups or sub-paths")
 	printFlag("-s, --sparse", "Add blank line between groups")
+	printFlag("-n, --no-color", "Disable colored output")
+	printFlag("--config", "Path to config file")
 	printFlag("-v, --version", "Print version and exit")
 	printFlag("-h, --help", "Show this help message")
 	fmt.Println()
@@ -140,7 +152,8 @@ func printUsage() {
 	fmt.Println()
 
 	_, _ = bold.Println("  CONFIGURATION")
-	_, _ = white.Println("    Config is loaded from the first path found:")
+	_, _ = white.Println("    Use --config <path> to specify a custom config file.")
+	_, _ = white.Println("    Without --config, the first found path is used:")
 	_, _ = dim.Println("      1. ./config.toml")
 	_, _ = dim.Println("      2. $XDG_CONFIG_HOME/git-branch-grouper/config.toml")
 	_, _ = dim.Println("      3. ~/.config/git-branch-grouper/config.toml")

@@ -27,7 +27,7 @@ type Config struct {
 	Format Format            `toml:"format"`
 }
 
-func Load() (Config, string) {
+func Load(explicitPath ...string) (Config, string) {
 	cfg := Config{
 		Colors: map[string]string{
 			"default":     "red",
@@ -42,10 +42,19 @@ func Load() (Config, string) {
 		},
 	}
 
-	configPath := resolveConfigPath()
+	var configPath string
+
+	if len(explicitPath) > 0 && explicitPath[0] != "" {
+		configPath = explicitPath[0]
+	} else {
+		configPath = resolveConfigPath()
+	}
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
+		if len(explicitPath) > 0 && explicitPath[0] != "" {
+			fmt.Fprintf(os.Stderr, "Warning: specified config %s not found\n", configPath)
+		}
 		return cfg, configPath
 	}
 
