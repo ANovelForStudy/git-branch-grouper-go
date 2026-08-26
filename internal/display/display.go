@@ -15,13 +15,11 @@ import (
 func PrintResults(w io.Writer, data model.BranchData, cfg config.Config, hasFilter bool) {
 	starColorStr := cfg.Colors["active_star"]
 	marker := cfg.Format.BranchMarker + " "
-	first := true
 
 	if !hasFilter {
 		defaultColorStr := cfg.Colors["default"]
 		title := strings.ReplaceAll(cfg.Format.GroupPrefix, "{group}", "default")
-		printSimpleGroup(w, title, data.DefaultBranches, defaultColorStr, starColorStr, marker, cfg.Format.Indent)
-		first = false
+		printSimpleGroup(w, title, data.DefaultBranches, defaultColorStr, starColorStr, marker, cfg.Format.Indent, cfg.Main.Sparse)
 	}
 
 	groupNames := make([]string, 0, len(data.MainGroups))
@@ -31,17 +29,12 @@ func PrintResults(w io.Writer, data model.BranchData, cfg config.Config, hasFilt
 	sort.Strings(groupNames)
 
 	for _, groupName := range groupNames {
-		if !first {
-			_, _ = fmt.Fprint(w, cfg.Format.Separator)
-		}
-		first = false
-
 		groupColorStr := cfg.Groups[groupName]
 		if groupColorStr == "" {
 			groupColorStr = "cyan"
 		}
 
-		title := strings.ReplaceAll(cfg.Format.GroupPrefix, "{group}", groupName) + "/"
+		title := groupName + "/"
 		titleColor := getColorPrinter(groupColorStr)
 		_, _ = titleColor.Fprintln(w, title)
 
@@ -50,15 +43,16 @@ func PrintResults(w io.Writer, data model.BranchData, cfg config.Config, hasFilt
 		for _, subKey := range rootNode.SubKeys {
 			printNode(w, rootNode.Children[subKey], 1, groupColorStr, starColorStr, marker, cfg.Format.Indent, cfg)
 		}
+
+		if cfg.Main.Sparse {
+			_, _ = fmt.Fprintln(w)
+		}
 	}
 
 	if !hasFilter {
-		if !first {
-			_, _ = fmt.Fprint(w, cfg.Format.Separator)
-		}
 		otherColorStr := cfg.Colors["other"]
 		title := strings.ReplaceAll(cfg.Format.GroupPrefix, "{group}", "other")
-		printSimpleGroup(w, title, data.OtherBranches, otherColorStr, starColorStr, marker, cfg.Format.Indent)
+		printSimpleGroup(w, title, data.OtherBranches, otherColorStr, starColorStr, marker, cfg.Format.Indent, cfg.Main.Sparse)
 	}
 }
 
@@ -97,7 +91,7 @@ func printNode(w io.Writer, node *model.Node, level int, parentColorStr string, 
 	}
 }
 
-func printSimpleGroup(w io.Writer, title string, branches []string, titleColorStr string, starColorStr string, marker string, indent string) {
+func printSimpleGroup(w io.Writer, title string, branches []string, titleColorStr string, starColorStr string, marker string, indent string, sparse bool) {
 	titleColor := getColorPrinter(titleColorStr)
 	_, _ = titleColor.Fprintln(w, title)
 
@@ -112,6 +106,10 @@ func printSimpleGroup(w io.Writer, title string, branches []string, titleColorSt
 		} else {
 			_, _ = fmt.Fprintln(w, indent, branch)
 		}
+	}
+
+	if sparse {
+		_, _ = fmt.Fprintln(w)
 	}
 }
 

@@ -32,7 +32,6 @@ func defaultConfig() config.Config {
 			GroupPrefix:  "[{group}]",
 			Indent:       "    ",
 			BranchMarker: "*",
-			Separator:    "\n",
 		},
 	}
 }
@@ -62,8 +61,8 @@ func TestPrintResultsDefaultFormat(t *testing.T) {
 	if !strings.Contains(output, "[default]") {
 		t.Error("expected [default] header")
 	}
-	if !strings.Contains(output, "[feat]/") {
-		t.Error("expected [feat]/ header")
+	if !strings.Contains(output, "feat/") {
+		t.Error("expected feat/ header (no brackets)")
 	}
 	if !strings.Contains(output, "[other]") {
 		t.Error("expected [other] header")
@@ -76,7 +75,7 @@ func TestPrintResultsDefaultFormat(t *testing.T) {
 	}
 }
 
-func TestPrintResultsGroupPrefixTemplate(t *testing.T) {
+func TestPrintResultsGroupPrefixOnlyForSpecialGroups(t *testing.T) {
 	cfg := defaultConfig()
 	cfg.Format.GroupPrefix = "({group})"
 
@@ -95,8 +94,14 @@ func TestPrintResultsGroupPrefixTemplate(t *testing.T) {
 	if !strings.Contains(output, "(default)") {
 		t.Errorf("expected '(default)' in output, got:\n%s", output)
 	}
-	if !strings.Contains(output, "(fix)/") {
-		t.Errorf("expected '(fix)/' in output, got:\n%s", output)
+	if !strings.Contains(output, "(other)") {
+		t.Errorf("expected '(other)' in output, got:\n%s", output)
+	}
+	if !strings.Contains(output, "fix/") {
+		t.Errorf("named group should be 'fix/' (no prefix), got:\n%s", output)
+	}
+	if strings.Contains(output, "(fix)") {
+		t.Errorf("named group should NOT use group_prefix, got:\n%s", output)
 	}
 }
 
@@ -143,9 +148,37 @@ func TestPrintResultsCustomMarker(t *testing.T) {
 	}
 }
 
-func TestPrintResultsSeparatorBetweenSections(t *testing.T) {
+func TestPrintResultsNoBlankLinesWithoutSparse(t *testing.T) {
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", false)),
+			"fix":  makeNode("fix", false, makeNode("bug", false)),
+		},
+		DefaultBranches: []string{"main"},
+		OtherBranches:   []string{"misc"},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, defaultConfig(), false)
+	})
+
+	output = strings.TrimRight(output, "\n")
+	lines := strings.Split(output, "\n")
+	blankCount := 0
+	for _, line := range lines {
+		if line == "" {
+			blankCount++
+		}
+	}
+
+	if blankCount != 0 {
+		t.Errorf("expected 0 blank lines without sparse, got %d in:\n%s", blankCount, output)
+	}
+}
+
+func TestPrintResultsBlankLinesWithSparse(t *testing.T) {
 	cfg := defaultConfig()
-	cfg.Format.Separator = "\n"
+	cfg.Main.Sparse = true
 
 	data := model.BranchData{
 		MainGroups: map[string]*model.Node{
@@ -170,43 +203,11 @@ func TestPrintResultsSeparatorBetweenSections(t *testing.T) {
 	}
 
 	if blankCount < 3 {
-		t.Errorf("expected at least 3 blank lines (between 4 sections), got %d in:\n%s", blankCount, output)
-	}
-}
-
-func TestPrintResultsEmptySeparator(t *testing.T) {
-	cfg := defaultConfig()
-	cfg.Format.Separator = ""
-
-	data := model.BranchData{
-		MainGroups: map[string]*model.Node{
-			"feat": makeNode("feat", false, makeNode("auth", false)),
-		},
-		DefaultBranches: []string{"main"},
-		OtherBranches:   []string{"misc"},
-	}
-
-	output := capture(func(w io.Writer) {
-		PrintResults(w, data, cfg, false)
-	})
-
-	output = strings.TrimRight(output, "\n")
-	lines := strings.Split(output, "\n")
-	blankCount := 0
-	for _, line := range lines {
-		if line == "" {
-			blankCount++
-		}
-	}
-
-	if blankCount != 0 {
-		t.Errorf("expected 0 blank lines with empty separator, got %d in:\n%s", blankCount, output)
+		t.Errorf("expected at least 3 blank lines with sparse (between 4 sections), got %d in:\n%s", blankCount, output)
 	}
 }
 
 func TestPrintResultsWithFilter(t *testing.T) {
-	cfg := defaultConfig()
-
 	data := model.BranchData{
 		MainGroups: map[string]*model.Node{
 			"feat": makeNode("feat", false, makeNode("auth", false)),
@@ -216,7 +217,7 @@ func TestPrintResultsWithFilter(t *testing.T) {
 	}
 
 	output := capture(func(w io.Writer) {
-		PrintResults(w, data, cfg, true)
+		PrintResults(w, data, defaultConfig(), true)
 	})
 
 	if strings.Contains(output, "[default]") {
@@ -225,28 +226,7 @@ func TestPrintResultsWithFilter(t *testing.T) {
 	if strings.Contains(output, "[other]") {
 		t.Error("should not contain [other] when filter is active")
 	}
-	if !strings.Contains(output, "[feat]/") {
-		t.Error("should contain [feat]/ even with filter")
-	}
-}
-
-func TestPrintResultsNoLeadingSeparator(t *testing.T) {
-	cfg := defaultConfig()
-	cfg.Format.Separator = "\n"
-
-	data := model.BranchData{
-		MainGroups: map[string]*model.Node{
-			"feat": makeNode("feat", false, makeNode("auth", false)),
-		},
-		DefaultBranches: []string{},
-		OtherBranches:   []string{},
-	}
-
-	output := capture(func(w io.Writer) {
-		PrintResults(w, data, cfg, true)
-	})
-
-	if len(output) > 0 && output[0] == '\n' {
-		t.Errorf("should not start with newline, got:\n%q", output)
+	if !strings.Contains(output, "feat/") {
+		t.Error("should contain feat/ even with filter")
 	}
 }

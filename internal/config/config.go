@@ -18,7 +18,6 @@ type Format struct {
 	GroupPrefix  string `toml:"group_prefix"`
 	Indent       string `toml:"indent"`
 	BranchMarker string `toml:"branch_marker"`
-	Separator    string `toml:"separator"`
 }
 
 type Config struct {
@@ -40,7 +39,6 @@ func Load() (Config, string) {
 			GroupPrefix:  "[{group}]",
 			Indent:       "    ",
 			BranchMarker: "*",
-			Separator:    "\n",
 		},
 	}
 

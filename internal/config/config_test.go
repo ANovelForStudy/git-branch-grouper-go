@@ -14,7 +14,6 @@ func TestDefaultFormatValues(t *testing.T) {
 			GroupPrefix:  "[{group}]",
 			Indent:       "    ",
 			BranchMarker: "*",
-			Separator:    "\n",
 		},
 	}
 
@@ -27,9 +26,6 @@ func TestDefaultFormatValues(t *testing.T) {
 	if cfg.Format.BranchMarker != "*" {
 		t.Errorf("BranchMarker = %q, want %q", cfg.Format.BranchMarker, "*")
 	}
-	if cfg.Format.Separator != "\n" {
-		t.Errorf("Separator = %q, want %q", cfg.Format.Separator, "\n")
-	}
 }
 
 func TestTOMLParseFullFormat(t *testing.T) {
@@ -38,7 +34,6 @@ func TestTOMLParseFullFormat(t *testing.T) {
 group_prefix = "({group})"
 indent = "\t"
 branch_marker = ">"
-separator = "\n\n"
 `)
 	var cfg Config
 	if err := toml.Unmarshal(input, &cfg); err != nil {
@@ -53,9 +48,6 @@ separator = "\n\n"
 	}
 	if cfg.Format.BranchMarker != ">" {
 		t.Errorf("BranchMarker = %q, want %q", cfg.Format.BranchMarker, ">")
-	}
-	if cfg.Format.Separator != "\n\n" {
-		t.Errorf("Separator = %q, want %q", cfg.Format.Separator, "\n\n")
 	}
 }
 
@@ -78,9 +70,6 @@ branch_marker = "+"
 	if cfg.Format.Indent != "" {
 		t.Errorf("Indent should be empty (zero value), got %q", cfg.Format.Indent)
 	}
-	if cfg.Format.Separator != "" {
-		t.Errorf("Separator should be empty (zero value), got %q", cfg.Format.Separator)
-	}
 }
 
 func TestTOMLParseEmptyFormat(t *testing.T) {
@@ -102,9 +91,6 @@ sparse = true
 	if cfg.Format.BranchMarker != "" {
 		t.Errorf("BranchMarker should be empty, got %q", cfg.Format.BranchMarker)
 	}
-	if cfg.Format.Separator != "" {
-		t.Errorf("Separator should be empty, got %q", cfg.Format.Separator)
-	}
 }
 
 func TestLoadMergesDefaultsWithFile(t *testing.T) {
@@ -115,14 +101,12 @@ func TestLoadMergesDefaultsWithFile(t *testing.T) {
 			GroupPrefix:  "[{group}]",
 			Indent:       "    ",
 			BranchMarker: "*",
-			Separator:    "\n",
 		},
 	}
 
 	input := []byte(`
 [format]
 branch_marker = "•"
-separator = ""
 `)
 	if err := toml.Unmarshal(input, &cfg); err != nil {
 		t.Fatalf("unmarshal failed: %v", err)
@@ -130,9 +114,6 @@ separator = ""
 
 	if cfg.Format.BranchMarker != "•" {
 		t.Errorf("BranchMarker = %q, want %q", cfg.Format.BranchMarker, "•")
-	}
-	if cfg.Format.Separator != "" {
-		t.Errorf("Separator = %q, want empty", cfg.Format.Separator)
 	}
 	if cfg.Format.GroupPrefix != "[{group}]" {
 		t.Errorf("GroupPrefix should retain default %q, got %q", "[{group}]", cfg.Format.GroupPrefix)
