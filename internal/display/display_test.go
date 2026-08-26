@@ -1,0 +1,252 @@
+package display
+
+import (
+	"bytes"
+	"io"
+	"strings"
+	"testing"
+
+	"git-branch-grouper-plugin/internal/config"
+	"git-branch-grouper-plugin/internal/model"
+)
+
+func makeNode(name string, isActive bool, children ...*model.Node) *model.Node {
+	n := model.NewNode(name)
+	n.IsActive = isActive
+	for _, c := range children {
+		n.Children[c.Name] = c
+		n.SubKeys = append(n.SubKeys, c.Name)
+	}
+	return n
+}
+
+func defaultConfig() config.Config {
+	return config.Config{
+		Colors: map[string]string{
+			"default":     "red",
+			"other":       "yellow",
+			"active_star": "green",
+		},
+		Groups: map[string]string{},
+		Format: config.Format{
+			GroupPrefix:  "[{group}]",
+			Indent:       "    ",
+			BranchMarker: "*",
+			Separator:    "\n",
+		},
+	}
+}
+
+func capture(fn func(io.Writer)) string {
+	var buf bytes.Buffer
+	fn(&buf)
+	return buf.String()
+}
+
+func TestPrintResultsDefaultFormat(t *testing.T) {
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false,
+				makeNode("login", true),
+				makeNode("signup", false),
+			),
+		},
+		DefaultBranches: []string{"main", "* develop"},
+		OtherBranches:   []string{"random-branch"},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, defaultConfig(), false)
+	})
+
+	if !strings.Contains(output, "[default]") {
+		t.Error("expected [default] header")
+	}
+	if !strings.Contains(output, "[feat]/") {
+		t.Error("expected [feat]/ header")
+	}
+	if !strings.Contains(output, "[other]") {
+		t.Error("expected [other] header")
+	}
+	if !strings.Contains(output, "* develop") {
+		t.Error("expected '* develop' with star marker")
+	}
+	if !strings.Contains(output, "* login") {
+		t.Error("expected '* login' with star marker")
+	}
+}
+
+func TestPrintResultsGroupPrefixTemplate(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Format.GroupPrefix = "({group})"
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"fix": makeNode("fix", false, makeNode("bug", false)),
+		},
+		DefaultBranches: []string{"main"},
+		OtherBranches:   []string{},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, false)
+	})
+
+	if !strings.Contains(output, "(default)") {
+		t.Errorf("expected '(default)' in output, got:\n%s", output)
+	}
+	if !strings.Contains(output, "(fix)/") {
+		t.Errorf("expected '(fix)/' in output, got:\n%s", output)
+	}
+}
+
+func TestPrintResultsCustomIndent(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Format.Indent = "\t"
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", false)),
+		},
+		DefaultBranches: []string{},
+		OtherBranches:   []string{},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, true)
+	})
+
+	if !strings.Contains(output, "\tauth") {
+		t.Errorf("expected tab-indented 'auth', got:\n%s", output)
+	}
+}
+
+func TestPrintResultsCustomMarker(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Format.BranchMarker = ">"
+
+	data := model.BranchData{
+		MainGroups:      map[string]*model.Node{},
+		DefaultBranches: []string{"* main"},
+		OtherBranches:   []string{},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, false)
+	})
+
+	if !strings.Contains(output, "> main") {
+		t.Errorf("expected '> main' with custom marker, got:\n%s", output)
+	}
+	if strings.Contains(output, "* main") {
+		t.Errorf("should not contain default '*' marker, got:\n%s", output)
+	}
+}
+
+func TestPrintResultsSeparatorBetweenSections(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Format.Separator = "\n"
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", false)),
+			"fix":  makeNode("fix", false, makeNode("bug", false)),
+		},
+		DefaultBranches: []string{"main"},
+		OtherBranches:   []string{"misc"},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, false)
+	})
+
+	output = strings.TrimRight(output, "\n")
+	lines := strings.Split(output, "\n")
+	blankCount := 0
+	for _, line := range lines {
+		if line == "" {
+			blankCount++
+		}
+	}
+
+	if blankCount < 3 {
+		t.Errorf("expected at least 3 blank lines (between 4 sections), got %d in:\n%s", blankCount, output)
+	}
+}
+
+func TestPrintResultsEmptySeparator(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Format.Separator = ""
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", false)),
+		},
+		DefaultBranches: []string{"main"},
+		OtherBranches:   []string{"misc"},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, false)
+	})
+
+	output = strings.TrimRight(output, "\n")
+	lines := strings.Split(output, "\n")
+	blankCount := 0
+	for _, line := range lines {
+		if line == "" {
+			blankCount++
+		}
+	}
+
+	if blankCount != 0 {
+		t.Errorf("expected 0 blank lines with empty separator, got %d in:\n%s", blankCount, output)
+	}
+}
+
+func TestPrintResultsWithFilter(t *testing.T) {
+	cfg := defaultConfig()
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", false)),
+		},
+		DefaultBranches: []string{"main"},
+		OtherBranches:   []string{"misc"},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, true)
+	})
+
+	if strings.Contains(output, "[default]") {
+		t.Error("should not contain [default] when filter is active")
+	}
+	if strings.Contains(output, "[other]") {
+		t.Error("should not contain [other] when filter is active")
+	}
+	if !strings.Contains(output, "[feat]/") {
+		t.Error("should contain [feat]/ even with filter")
+	}
+}
+
+func TestPrintResultsNoLeadingSeparator(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Format.Separator = "\n"
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", false)),
+		},
+		DefaultBranches: []string{},
+		OtherBranches:   []string{},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, true)
+	})
+
+	if len(output) > 0 && output[0] == '\n' {
+		t.Errorf("should not start with newline, got:\n%q", output)
+	}
+}

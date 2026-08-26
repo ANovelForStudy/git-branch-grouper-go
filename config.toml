@@ -1,6 +1,12 @@
 [main]
 sparse = false
 
+[format]
+group_prefix = "[{group}]"
+indent = "  "
+branch_marker = "*"
+separator = "\n"
+
 [colors]
 default = "red"
 other = "yellow"

@@ -2,6 +2,7 @@ package display
 
 import (
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -11,12 +12,16 @@ import (
 	"git-branch-grouper-plugin/internal/model"
 )
 
-func PrintResults(data model.BranchData, cfg config.Config, hasFilter bool) {
+func PrintResults(w io.Writer, data model.BranchData, cfg config.Config, hasFilter bool) {
 	starColorStr := cfg.Colors["active_star"]
+	marker := cfg.Format.BranchMarker + " "
+	first := true
 
 	if !hasFilter {
 		defaultColorStr := cfg.Colors["default"]
-		printSimpleGroup("[default]", data.DefaultBranches, defaultColorStr, starColorStr, cfg.Main.Sparse)
+		title := strings.ReplaceAll(cfg.Format.GroupPrefix, "{group}", "default")
+		printSimpleGroup(w, title, data.DefaultBranches, defaultColorStr, starColorStr, marker, cfg.Format.Indent)
+		first = false
 	}
 
 	groupNames := make([]string, 0, len(data.MainGroups))
@@ -26,34 +31,39 @@ func PrintResults(data model.BranchData, cfg config.Config, hasFilter bool) {
 	sort.Strings(groupNames)
 
 	for _, groupName := range groupNames {
+		if !first {
+			_, _ = fmt.Fprint(w, cfg.Format.Separator)
+		}
+		first = false
+
 		groupColorStr := cfg.Groups[groupName]
 		if groupColorStr == "" {
 			groupColorStr = "cyan"
 		}
 
-		title := fmt.Sprintf("%s/", groupName)
+		title := strings.ReplaceAll(cfg.Format.GroupPrefix, "{group}", groupName) + "/"
 		titleColor := getColorPrinter(groupColorStr)
-		_, _ = titleColor.Println(title)
+		_, _ = titleColor.Fprintln(w, title)
 
 		rootNode := data.MainGroups[groupName]
 		sort.Strings(rootNode.SubKeys)
 		for _, subKey := range rootNode.SubKeys {
-			printNode(rootNode.Children[subKey], 1, groupColorStr, starColorStr, cfg)
-		}
-
-		if cfg.Main.Sparse {
-			fmt.Println()
+			printNode(w, rootNode.Children[subKey], 1, groupColorStr, starColorStr, marker, cfg.Format.Indent, cfg)
 		}
 	}
 
 	if !hasFilter {
+		if !first {
+			_, _ = fmt.Fprint(w, cfg.Format.Separator)
+		}
 		otherColorStr := cfg.Colors["other"]
-		printSimpleGroup("[other]", data.OtherBranches, otherColorStr, starColorStr, cfg.Main.Sparse)
+		title := strings.ReplaceAll(cfg.Format.GroupPrefix, "{group}", "other")
+		printSimpleGroup(w, title, data.OtherBranches, otherColorStr, starColorStr, marker, cfg.Format.Indent)
 	}
 }
 
-func printNode(node *model.Node, level int, parentColorStr string, starColorStr string, cfg config.Config) {
-	tabulation := strings.Repeat("    ", level)
+func printNode(w io.Writer, node *model.Node, level int, parentColorStr string, starColorStr string, marker string, indent string, cfg config.Config) {
+	tabulation := strings.Repeat(indent, level)
 	starColor := getColorPrinter(starColorStr)
 
 	nodeColorStr := cfg.Groups[node.Name]
@@ -64,49 +74,44 @@ func printNode(node *model.Node, level int, parentColorStr string, starColorStr 
 
 	if len(node.Children) == 0 {
 		if node.IsActive {
-			fmt.Print(tabulation)
-			_, _ = starColor.Print("* ")
-			_, _ = nodeColor.Println(node.Name)
+			_, _ = fmt.Fprint(w, tabulation)
+			_, _ = starColor.Fprint(w, marker)
+			_, _ = nodeColor.Fprintln(w, node.Name)
 		} else {
-			_, _ = nodeColor.Println(tabulation + node.Name)
+			_, _ = nodeColor.Fprintln(w, tabulation+node.Name)
 		}
 		return
 	}
 
 	if node.IsActive {
-		fmt.Print(tabulation)
-		_, _ = starColor.Print("* ")
-		_, _ = nodeColor.Println(node.Name + "/")
+		_, _ = fmt.Fprint(w, tabulation)
+		_, _ = starColor.Fprint(w, marker)
+		_, _ = nodeColor.Fprintln(w, node.Name+"/")
 	} else {
-		_, _ = nodeColor.Println(tabulation + node.Name + "/")
+		_, _ = nodeColor.Fprintln(w, tabulation+node.Name+"/")
 	}
 
 	sort.Strings(node.SubKeys)
 	for _, subKey := range node.SubKeys {
-		printNode(node.Children[subKey], level+1, nodeColorStr, starColorStr, cfg)
+		printNode(w, node.Children[subKey], level+1, nodeColorStr, starColorStr, marker, indent, cfg)
 	}
 }
 
-func printSimpleGroup(title string, branches []string, titleColorStr string, starColorStr string, sparse bool) {
+func printSimpleGroup(w io.Writer, title string, branches []string, titleColorStr string, starColorStr string, marker string, indent string) {
 	titleColor := getColorPrinter(titleColorStr)
-	_, _ = titleColor.Println(title)
+	_, _ = titleColor.Fprintln(w, title)
 
 	starColor := getColorPrinter(starColorStr)
-	tabulation := "    "
 
 	sort.Strings(branches)
 	for _, branch := range branches {
 		if strings.HasPrefix(branch, "* ") {
-			fmt.Print(tabulation)
-			_, _ = starColor.Print("* ")
-			fmt.Println(strings.TrimPrefix(branch, "* "))
+			_, _ = fmt.Fprint(w, indent)
+			_, _ = starColor.Fprint(w, marker)
+			_, _ = fmt.Fprintln(w, strings.TrimPrefix(branch, "* "))
 		} else {
-			fmt.Println(tabulation, branch)
+			_, _ = fmt.Fprintln(w, indent, branch)
 		}
-	}
-
-	if sparse {
-		fmt.Println()
 	}
 }
 

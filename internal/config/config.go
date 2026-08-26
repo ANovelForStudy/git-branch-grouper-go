@@ -14,10 +14,18 @@ type Main struct {
 	Sparse bool `toml:"sparse"`
 }
 
+type Format struct {
+	GroupPrefix  string `toml:"group_prefix"`
+	Indent       string `toml:"indent"`
+	BranchMarker string `toml:"branch_marker"`
+	Separator    string `toml:"separator"`
+}
+
 type Config struct {
 	Main   Main              `toml:"main"`
 	Colors map[string]string `toml:"colors"`
 	Groups map[string]string `toml:"groups"`
+	Format Format            `toml:"format"`
 }
 
 func Load() (Config, string) {
@@ -28,6 +36,12 @@ func Load() (Config, string) {
 			"active_star": "green",
 		},
 		Groups: map[string]string{},
+		Format: Format{
+			GroupPrefix:  "[{group}]",
+			Indent:       "    ",
+			BranchMarker: "*",
+			Separator:    "\n",
+		},
 	}
 
 	configPath := resolveConfigPath()

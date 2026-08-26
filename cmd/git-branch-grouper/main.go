@@ -78,7 +78,7 @@ func main() {
 
 	data = filter.Apply(data, includeList, excludeList)
 
-	display.PrintResults(data, cfg, len(includeList) > 0 || len(excludeList) > 0)
+	display.PrintResults(os.Stdout, data, cfg, len(includeList) > 0 || len(excludeList) > 0)
 }
 
 func fatalf(format string, args ...any) {
