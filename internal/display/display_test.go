@@ -42,6 +42,103 @@ func capture(fn func(io.Writer)) string {
 	return buf.String()
 }
 
+func TestGetColorPrinterNamedColors(t *testing.T) {
+	namedColors := []string{
+		"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+		"hi-black", "hi-red", "hi-green", "hi-yellow", "hi-blue", "hi-magenta", "hi-cyan", "hi-white",
+	}
+	for _, name := range namedColors {
+		c := getColorPrinter(name)
+		if c == nil {
+			t.Errorf("getColorPrinter(%q) returned nil", name)
+		}
+	}
+}
+
+func TestGetColorPrinterHex6(t *testing.T) {
+	c := getColorPrinter("#FF8800")
+	if c == nil {
+		t.Fatal("getColorPrinter(#FF8800) returned nil")
+	}
+}
+
+func TestGetColorPrinterHex3(t *testing.T) {
+	c := getColorPrinter("#F00")
+	if c == nil {
+		t.Fatal("getColorPrinter(#F00) returned nil")
+	}
+}
+
+func TestGetColorPrinterHexInvalid(t *testing.T) {
+	c := getColorPrinter("#ZZZZZZ")
+	if c == nil {
+		t.Fatal("getColorPrinter(#ZZZZZZ) returned nil")
+	}
+}
+
+func TestGetColorPrinter256Color(t *testing.T) {
+	c := getColorPrinter("196")
+	if c == nil {
+		t.Fatal("getColorPrinter(196) returned nil")
+	}
+}
+
+func TestGetColorPrinter256ColorOutOfRange(t *testing.T) {
+	c := getColorPrinter("300")
+	if c == nil {
+		t.Fatal("getColorPrinter(300) returned nil")
+	}
+}
+
+func TestGetColorPrinterUnknownFallback(t *testing.T) {
+	c := getColorPrinter("notacolor")
+	if c == nil {
+		t.Fatal("getColorPrinter(notacolor) returned nil")
+	}
+}
+
+func TestPrintResultsWithHexColor(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Groups["feat"] = "#FF8800"
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"feat": makeNode("feat", false, makeNode("auth", false)),
+		},
+		DefaultBranches: []string{},
+		OtherBranches:   []string{},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, true)
+	})
+
+	if !strings.Contains(output, "feat/") {
+		t.Errorf("expected feat/ in output, got:\n%s", output)
+	}
+}
+
+func TestPrintResultsWith256Color(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Groups["fix"] = "196"
+
+	data := model.BranchData{
+		MainGroups: map[string]*model.Node{
+			"fix": makeNode("fix", false, makeNode("bug", false)),
+		},
+		DefaultBranches: []string{},
+		OtherBranches:   []string{},
+	}
+
+	output := capture(func(w io.Writer) {
+		PrintResults(w, data, cfg, true)
+	})
+
+	if !strings.Contains(output, "fix/") {
+		t.Errorf("expected fix/ in output, got:\n%s", output)
+	}
+}
+
 func TestPrintResultsDefaultFormat(t *testing.T) {
 	data := model.BranchData{
 		MainGroups: map[string]*model.Node{
